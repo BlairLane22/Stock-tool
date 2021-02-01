@@ -27,16 +27,16 @@ npm run start -- env
 ### Using npm to run the tool 
 
 ```
-npm run tools
-npm run tools -- -- -- --version
-npm run tools -- -- -- env
+npm run start
+npm run start -- -- -- --version
+npm run start -- -- -- env
 ```
 
 ### Debugging the Tool
 The following 4 settings are the pertinent ones when debugging the tool. Refer to the launch.json for more info
 ```
             "preLaunchTask": "tsc: build - tsconfig.json",
-            "program": "${workspaceFolder}/packages/gqlpages-tools/src/index.ts",
+            "program": "${workspaceFolder}/src/index.ts",
             "outFiles": [
                          "${workspaceFolder}/packages/**/*.js",
                         ],

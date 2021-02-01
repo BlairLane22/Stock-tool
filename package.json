@@ -8,6 +8,7 @@
   "license": "ISC",
   "main": "lib/src/index.js",
   "dependencies": {
+    "axios": "^0.21.1",
     "commander": "^6.2.1",
     "dotenv": "^8.2.0",
     "lodash": "^4.17.20",

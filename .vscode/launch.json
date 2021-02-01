@@ -20,24 +20,17 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch GQLPages Tools",
-            "program": "${workspaceFolder}/packages/gqlpages-tools/src/index.ts",
+            "name": "Launch Program ",
+            "program": "${workspaceFolder}/src/index.ts",
             "outputCapture": "std",
             //"preLaunchTask": "tsc: build - packages/gqlpages-tools/tsconfig.json",
             //"preLaunchTask": "npm: build",
             "preLaunchTask": "tsc: build - tsconfig.json",
             "outFiles": [
-                         "${workspaceFolder}/packages/**/*.js",
-                         //"${workspaceFolder}/packages/gqlpages-tools/lib/**/*.js",
-                         //"${workspaceFolder}/packages/gqlpages-tools/lib/gqlpages-tools/src/*.js",
-                         //"${workspaceFolder}/packages/gqlpages-tools/lib/gqlpages-data-transform/src/*.js",
-                         //"${workspaceFolder}/packages/gqlpages-data-transform/lib/src/**/*.js"
+                         "${workspaceFolder}/**/*.js",
                         ],
-            //"args": ["deploy", "./test-data/covid19"]
-            //"args": ["deploy", "./test-data/covid19","--overwrite"]
-            //"args": ["deploy", "test-data/ppp"]
             //"args": ["deploy", "test-data/ppp","--overwrite"]
-            "args": ["deploy", "test-data/canada-intl-money-flow","--overwrite","--verbose"]
+            "args": ["env"]
         }
     ]
 }

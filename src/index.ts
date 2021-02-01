@@ -14,8 +14,8 @@ program
   .description(`list environment settings`)
   .action(async () => {
     console.log(`Executing in folder: ${process.cwd()}`);
-    const dbUrl = process.env.DATABASE_URL?.replace(/:(.*):.*@/, ':$1:***@');
-    console.log(`Database Connection: ${dbUrl}`);
+    const token = process.env.FINNHUB_API_TOKEN;
+    console.log(`FINNHUB TOKEN: ${token}`);
     process.exit(0);
   });
 
