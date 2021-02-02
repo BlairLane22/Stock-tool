@@ -76,12 +76,35 @@ interface FinnCandles {
   t: Array<number>;
   s: string;
 }
-export async function getDailyCandles(symbol: string): Promise<Array<Candle>> {
+export async function getDailyCandles({
+  symbol,
+  fromStamp,
+  toStamp,
+}: {
+  symbol: string;
+  fromStamp: number;
+  toStamp: number;
+}): Promise<Array<Candle>> {
+  //const fromStamp = from.getTime() / 1000;
+  //const toStamp = to.getTime() / 1000;
   const result = await getData<FinnCandles>(
-    `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&token=${process.env.FINNHUB_API_TOKEN}`,
+    `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${fromStamp}&to=${toStamp}&token=${process.env.FINNHUB_API_TOKEN}`,
   );
 
   const candles: Array<Candle> = [];
+
+  if (result.o) {
+    result.o.forEach((v, i) => {
+      candles.push({
+        open: result.o[i],
+        high: result.h[i],
+        low: result.l[i],
+        close: result.c[i],
+        volume: result.v[i],
+        timeStamp: result.t[i],
+      });
+    });
+  }
 
   return candles;
 }
