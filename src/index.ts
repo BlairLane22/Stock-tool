@@ -5,6 +5,7 @@ require('dotenv').config({
 import settings from '../package.json';
 import { Command } from 'commander';
 import { deploy } from './deploy';
+import { stockDictionary } from './nasdaq-symbols';
 const program = new Command();
 
 program.version(settings.version).description('gqlpages tools');
@@ -25,6 +26,18 @@ program
   .option('--verbose', 'show intermediate steps')
   .action(async (uri, cmdObj) => {
     deploy(uri, cmdObj);
+  });
+
+program
+  .command('name <symbol>')
+  .description(`get the company name for a symbol`)
+  .action(async (symbol) => {
+    const ticker = symbol.toUpperCase();
+    if (stockDictionary[ticker]) {
+      console.log(`${ticker}:${stockDictionary[ticker]}`);
+    } else {
+      console.log(`${ticker} is not a valid symbol.`);
+    }
   });
 
 program.parse(process.argv);
