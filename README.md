@@ -24,14 +24,20 @@ npm run start -- env
 
 > Note you have to put in an extra `--` otherwise the command line arguments will be passed to npm rather than to the tool.
 
-### Using npm to run the tool 
+### Build then run the tool 
+
+First build it 
+```
+npm run build
+```
+It's now built in lib/src so you can just run it
 
 ```
-npm run start
-npm run start -- -- -- --version
-npm run start -- -- -- env
+node lib/src
+node lib/src --version
+node lib/src env
+node lib/src env
 ```
-
 ### Debugging the Tool
 The following 4 settings are the pertinent ones when debugging the tool. Refer to the launch.json for more info
 ```

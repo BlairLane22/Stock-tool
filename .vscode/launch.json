@@ -23,8 +23,6 @@
             "name": "Launch Program ",
             "program": "${workspaceFolder}/src/index.ts",
             "outputCapture": "std",
-            //"preLaunchTask": "tsc: build - packages/gqlpages-tools/tsconfig.json",
-            //"preLaunchTask": "npm: build",
             "preLaunchTask": "tsc: build - tsconfig.json",
             "outFiles": [
                          "${workspaceFolder}/**/*.js",
