@@ -4,7 +4,7 @@ export function exit(code = 0): void {
   const duration = (
     (new Date().valueOf() - startTime.valueOf()) /
     1000
-  ).toFixed(1);
+  ).toFixed(2);
   console.log(`Ran in ${duration}s`);
   process.exit(code);
 }
