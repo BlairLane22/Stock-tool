@@ -9,11 +9,12 @@ interface Candle {
 
 function smaCalculation(days: number, candles: Candle[]): number {
   let sum = 0;
+  const num = candles.length;
 
-  for (let x = 0; x < days; x++) {
-    const candle = candles[x];
+  for (let x = 1; x <= days; x++) {
+    const candle = candles[num - x];
     sum += candle.close;
-    // console.log(candles[x]);
+    // console.log(candle.close);
   }
 
   return sum / days;

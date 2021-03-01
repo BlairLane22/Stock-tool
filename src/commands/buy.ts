@@ -15,21 +15,23 @@ export async function buy(
   const x = days / 7;
   const last3days: number = end + Math.floor(x * 2) - days * seconds;
 
+  // console.log(Math.floor(last3days));
+  // console.log(Math.floor(end));
+
   const candles = await getDailyCandles({
     symbol: symbol,
-    fromStamp: Math.floor(last3days),
+    fromStamp: 0,
     toStamp: Math.floor(end),
   });
 
   //   Buy Decision
-  const ma_buy = movingAverageBuyDecision(5, candles);
+  const ma_buy = movingAverageBuyDecision(candles);
 
   //   console.log(candles[0].open);
 
-  //   console.log(quote.open);
-  console.log(Math.floor(last3days));
-  console.log(Math.floor(end));
-  console.log('Moving average: ' + ma_buy);
+  // console.log(candles);
+  // console.log(Math.floor(last3days));
+  // console.log(Math.floor(end));
 
   exit(0);
 }

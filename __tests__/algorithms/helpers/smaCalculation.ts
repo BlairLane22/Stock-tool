@@ -1,7 +1,7 @@
 import { smaCalculation } from '../../../src/algorithms/helpers/smaCalculation';
 
 describe('Test smaCalculation', () => {
-  test('empty list .. no trading on this day', async () => {
+  test('smaCalculation over 3 days', async () => {
     const sma = smaCalculation(3, [
       {
         open: 870.35,
