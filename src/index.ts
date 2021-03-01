@@ -6,6 +6,7 @@ import settings from '../package.json';
 import { Command } from 'commander';
 import { name } from './commands/name';
 import { quote } from './commands/quote';
+import { buy } from './commands/buy';
 const program = new Command();
 
 program.version(settings.version).description('gqlpages tools');
@@ -33,6 +34,13 @@ program
   .description(`get the company name for a symbol`)
   .action(async (symbol) => {
     name(symbol);
+  });
+
+program
+  .command('buy <symbol>')
+  .description(`get the purchase decision for a company`)
+  .action(async (uri, cmdObj) => {
+    buy(uri, cmdObj);
   });
 
 program.parse(process.argv);
