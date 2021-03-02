@@ -2,6 +2,7 @@ import { exit } from '../util/exit';
 import { getQuote } from '../util/rest';
 import { getDailyCandles } from '../util/rest';
 import { movingAverageBuyDecision } from '../algorithms/movingAverage';
+import { stochasticOscillatorBuyDecision } from '../algorithms/stochasticOscillator';
 
 export async function buy(
   symbol: string,
@@ -10,10 +11,6 @@ export async function buy(
   const quote = await getQuote(symbol.toUpperCase());
 
   const end: number = Date.now() / 1000 - 18000;
-  const seconds = 86400; //number of seconds in a day
-  const days = 20;
-  const x = days / 7;
-  const last3days: number = end + Math.floor(x * 2) - days * seconds;
 
   // console.log(Math.floor(last3days));
   // console.log(Math.floor(end));
@@ -26,6 +23,7 @@ export async function buy(
 
   //   Buy Decision
   const ma_buy = movingAverageBuyDecision(candles);
+  const k_buy = stochasticOscillatorBuyDecision(candles);
 
   //   console.log(candles[0].open);
 
