@@ -14,12 +14,12 @@ function stochasticOscillator(days: number, candles: Candle[]) {
   let lowest = candles[num - days].low;
 
   for (let x = 1; x <= days; x++) {
-    if (candles[num - x].high > highest) {
-      highest = candles[num - x].high;
+    if (candles[num - days + x - 1].close > highest) {
+      highest = candles[num - days + x - 1].high;
     }
 
-    if (candles[num - x].low < lowest) {
-      lowest = candles[num - x].low;
+    if (candles[num - days + x - 1].low < lowest) {
+      lowest = candles[num - days + x - 1].low;
     }
   }
 
