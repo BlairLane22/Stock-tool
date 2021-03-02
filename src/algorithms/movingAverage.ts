@@ -9,7 +9,7 @@ interface Candle {
   timeStamp: number;
 }
 
-function movingAverageBuyDecision(candles: Candle[]): boolean {
+function movingAverageBuyDecision(candles: Candle[]): number {
   const sma_50 = smaCalculation(50, candles);
   const sma_20 = smaCalculation(20, candles);
   const sma_8 = smaCalculation(8, candles);
@@ -21,10 +21,10 @@ function movingAverageBuyDecision(candles: Candle[]): boolean {
 
   if (sma_20 > sma_50 && sma_8 > sma_20) {
     console.log('Moving average: Buy Stock');
-    return true;
+    return 5;
   } else {
     console.log('Moving average: Neutral');
-    return false;
+    return 0;
   }
 }
 

@@ -9,7 +9,7 @@ export async function buy(
   symbol: string,
   cmdObj: Record<string, unknown>,
 ): Promise<void> {
-  // const quote = await getQuote(symbol.toUpperCase());
+  const quote = await getQuote(symbol.toUpperCase());
 
   const end: number = Date.now() / 1000 - 18000;
 
@@ -25,8 +25,17 @@ export async function buy(
   //   Buy Decision
   const ma_buy = movingAverageBuyDecision(candles);
   const k_buy = stochasticOscillatorBuyDecision(candles);
-  const bb_buy = bollingerBandBuyDecision(candles);
+  const bb_buy = bollingerBandBuyDecision(quote, candles);
 
+  // Total buy score
+  const buy_score = ma_buy + k_buy + bb_buy;
+
+  // Purchase If statement
+  if (buy_score >= 10) {
+    console.log('Buy Stocks');
+  } else {
+    console.log("Don't buy stock");
+  }
   //   console.log(candles[0].open);
 
   // console.log(candles);
