@@ -7,7 +7,7 @@ interface Candle {
   timeStamp: number;
 }
 
-function emaMovingAverage(days: number, candles: Candle[]): number {
+function emaCalculation(days: number, candles: Candle[]): number {
   let ema = 0;
   let ema_before = 0;
   const smoothing_factor = 2 / (days + 1);
@@ -24,4 +24,4 @@ function emaMovingAverage(days: number, candles: Candle[]): number {
   return ema;
 }
 
-export { emaMovingAverage };
+export { emaCalculation };
