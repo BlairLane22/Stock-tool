@@ -12,7 +12,7 @@ export async function buy(
 ): Promise<void> {
   const quote = await getQuote(symbol.toUpperCase());
 
-  const end: number = Date.now() / 1000 - 18000;
+  const end: number = Date.now() / 1000 - 18000; // The 18000 is for the 5 hour difference between new york city and the GMT time, in seconds
 
   // console.log(Math.floor(last3days));
   // console.log(Math.floor(end));
@@ -27,7 +27,7 @@ export async function buy(
   const ma_buy = movingAverageBuyDecision(candles);
   const k_buy = stochasticOscillatorBuyDecision(candles);
   const bb_buy = bollingerBandBuyDecision(quote, candles);
-  const macd_buy = macdBuyDecision(candles);
+  const macd_buy = macdBuyDecision(quote, candles);
 
   // Total buy score
   const buy_score = ma_buy + k_buy + bb_buy + macd_buy;

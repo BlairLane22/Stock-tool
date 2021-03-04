@@ -1,3 +1,5 @@
+import { smaCalculation } from '../helpers/smaCalculation';
+
 interface Candle {
   open: number;
   high: number;
@@ -7,21 +9,32 @@ interface Candle {
   timeStamp: number;
 }
 
-function emaCalculation(days: number, candles: Candle[]): number {
+interface Quote {
+  open: number;
+  high: number;
+  low: number;
+  current: number;
+  previousClose: number;
+}
+
+function emaCalculation(
+  days: number,
+  quote: Quote,
+  candles: Candle[],
+): number[] {
+  const num = candles.length;
+  const ema_final = [smaCalculation(days, candles)[0]];
   let ema = 0;
-  let ema_before = 0;
   const smoothing_factor = 2 / (days + 1);
-  const multiplier = smoothing_factor / (1 + days);
 
-  for (let a = 0; a < days; a++) {
-    const x = 1 - multiplier;
-    const y = candles[a].close;
-
-    ema = y + ema_before * x;
-    ema_before = ema;
+  for (let a = days; a > 0; a -= 1) {
+    ema =
+      (candles[num - a].close - ema_final[days - a]) * smoothing_factor +
+      ema_final[days - a];
+    ema_final.push(ema);
   }
 
-  return ema;
+  return ema_final;
 }
 
 export { emaCalculation };

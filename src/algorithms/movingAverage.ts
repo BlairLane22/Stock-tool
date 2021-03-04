@@ -19,7 +19,16 @@ function movingAverageBuyDecision(candles: Candle[]): number {
 
   //  BUY STOCKS (check if the moving average the day befor it is less than the one today is)
 
-  if (sma_20 > sma_50 && sma_8 > sma_20) {
+  // console.log(sma_50);
+  // console.log(sma_20);
+  // console.log(sma_8);
+
+  if (
+    sma_20[19] > sma_50[49] &&
+    sma_8[7] > sma_20[19] &&
+    sma_20[18] > sma_50[48] &&
+    sma_8[6] > sma_20[18]
+  ) {
     console.log('Moving average: Buy Stock');
     return 5;
   } else {

@@ -9,13 +9,26 @@ interface Candle {
   timeStamp: number;
 }
 
-function macdBuyDecision(candles: Candle[]): number {
-  const ema_12 = emaCalculation(12, candles);
-  const ema_26 = emaCalculation(26, candles);
+interface Quote {
+  open: number;
+  high: number;
+  low: number;
+  current: number;
+  previousClose: number;
+}
+
+function macdBuyDecision(quote: Quote, candles: Candle[]): number {
+  const ema_12 = emaCalculation(10, quote, candles);
+  const ema_26 = emaCalculation(30, quote, candles);
+  const ema_27 = emaCalculation(60, quote, candles);
 
   // const ema_final_before = ema_12_before - ema_26_before
 
-  const ema_final = ema_12 - ema_26;
+  console.log(ema_12);
+  console.log(ema_26);
+  console.log(ema_27);
+
+  const ema_final = ema_12[11] - ema_26[25];
   if (ema_final > 0) {
     console.log('MACD: Buy Stock');
     return 5;
