@@ -23,9 +23,15 @@ function emaCalculation(
   candles: Candle[],
 ): number[] {
   const num = candles.length;
-  const ema_final = [smaCalculation(days, candles)[0]];
   let ema = 0;
   const smoothing_factor = 2 / (days + 1);
+  let sum = 0;
+
+  for (let t = days; t > 0; t -= 1) {
+    sum += candles[num - days - t].close;
+  }
+
+  const ema_final = [sum / days];
 
   for (let a = days; a > 0; a -= 1) {
     ema =
