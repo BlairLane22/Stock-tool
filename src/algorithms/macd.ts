@@ -28,7 +28,7 @@ function macdBuyDecision(quote: Quote, candles: Candle[]): number {
   console.log(ema_26);
   console.log(ema_27);
 
-  const ema_final = ema_12[11] - ema_26[25];
+  const ema_final = ema_12[9] - ema_26[25];
   if (ema_final > 0) {
     console.log('MACD: Buy Stock');
     return 5;
