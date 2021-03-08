@@ -18,9 +18,9 @@ interface Quote {
 }
 
 function macdBuyDecision(quote: Quote, candles: Candle[]): number {
-  const ema_12 = emaCalculation(10, quote, candles);
-  const ema_26 = emaCalculation(30, quote, candles);
-  const ema_27 = emaCalculation(60, quote, candles);
+  const ema_12 = emaCalculation(10, 350, quote, candles);
+  const ema_26 = emaCalculation(30, 350, quote, candles);
+  const ema_27 = emaCalculation(60, 350, quote, candles);
 
   // const ema_final_before = ema_12_before - ema_26_before
 

@@ -34,6 +34,8 @@ function stochasticOscillator(days: number, candles: Candle[]): number {
 function stochasticOscillatorBuyDecision(candles: Candle[]): number {
   const k = stochasticOscillator(14, candles);
 
+  console.log(k);
+
   if (k < 15) {
     console.log('Stochastic Oscillator: Buy Stock');
     return 5;

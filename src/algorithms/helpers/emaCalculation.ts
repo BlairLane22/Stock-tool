@@ -25,19 +25,21 @@ function emaCalculation(
   let sum = 0;
 
   for (let t = days; t > 0; t -= 1) {
-    sum += candles[num - days - t].close;
+    sum += candles[num - duration - t].close;
   }
 
   const ema_final = [sum / days];
 
-  for (let a = 1; a < days; a += 1) {
+  for (let a = 1; a < duration; a += 1) {
     const ema =
-      candles[num - days + a].close * (2 / (1 + days)) +
+      candles[num - duration + a].close * (2 / (1 + days)) +
       ema_final[a - 1] * (1 - 2 / (1 + days));
     ema_final.push(ema);
   }
 
-  return ema_final;
+  const ema_length = ema_final.length;
+
+  return ema_final.slice(ema_length - days, ema_length);
 }
 
 export { emaCalculation };
