@@ -7,7 +7,7 @@ interface Candle {
   timeStamp: number;
 }
 
-function stochasticOscillator(days: number, candles: Candle[]): number {
+export function stochasticOscillator(days: number, candles: Candle[]): number {
   const num = candles.length;
 
   let highest = candles[num - days].high;
@@ -31,7 +31,7 @@ function stochasticOscillator(days: number, candles: Candle[]): number {
   return k;
 }
 
-function stochasticOscillatorBuyDecision(candles: Candle[]): number {
+export function stochasticOscillatorBuyDecision(candles: Candle[]): number {
   const k = stochasticOscillator(14, candles);
 
   console.log(k);
@@ -44,5 +44,3 @@ function stochasticOscillatorBuyDecision(candles: Candle[]): number {
     return 0;
   }
 }
-
-export { stochasticOscillatorBuyDecision, stochasticOscillator };

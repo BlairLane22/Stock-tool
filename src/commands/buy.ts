@@ -8,7 +8,7 @@ import { macdBuyDecision } from '../algorithms/macd';
 
 export async function buy(
   symbol: string,
-  cmdObj: Record<string, unknown>,
+  // cmdObj: Record<string, unknown>,
 ): Promise<void> {
   const quote = await getQuote(symbol.toUpperCase());
 
