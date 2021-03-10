@@ -10,9 +10,9 @@ interface Candle {
 }
 
 function movingAverageBuyDecision(candles: Candle[]): number {
-  const sma_50 = smaCalculation(50, candles);
-  const sma_20 = smaCalculation(20, candles);
-  const sma_8 = smaCalculation(8, candles);
+  const sma_50 = smaCalculation(50, 50, candles);
+  const sma_20 = smaCalculation(20, 50, candles);
+  const sma_8 = smaCalculation(8, 50, candles);
   // console.log('Moving average: ' + sma_50);
   // console.log('Moving average: ' + sma_20);
   // console.log('Moving average: ' + sma_8);

@@ -8,7 +8,7 @@ import { macdBuyDecision } from '../algorithms/macd';
 
 export async function buy(
   symbol: string,
-  // cmdObj: Record<string, unknown>,
+  cmdObj: Record<string, unknown>,
 ): Promise<void> {
   const quote = await getQuote(symbol.toUpperCase());
 
@@ -43,6 +43,7 @@ export async function buy(
   // console.log(candles);
   // console.log(Math.floor(last3days));
   // console.log(Math.floor(end));
+  // console.log(cmdObj);
 
   exit(0);
 }

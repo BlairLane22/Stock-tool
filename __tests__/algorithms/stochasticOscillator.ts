@@ -43,7 +43,39 @@ describe('Test stochaticOscillator', () => {
         volume: 24346210,
         timeStamp: Date.parse('2 Feb 2021 00:00:00 GMT') / 1000,
       },
+      {
+        open: 877.02,
+        high: 878.08,
+        low: 853.0,
+        close: 854.69,
+        volume: 18343510,
+        timeStamp: Date.parse('3 Feb 2021 00:00:00 GMT') / 1000,
+      },
+      {
+        open: 855,
+        high: 856.5,
+        low: 833.42,
+        close: 849.99,
+        volume: 15812660,
+        timeStamp: Date.parse('4 Feb 2021 00:00:00 GMT') / 1000,
+      },
+      {
+        open: 845,
+        high: 864.77,
+        low: 838.97,
+        close: 852.23,
+        volume: 18566640,
+        timeStamp: Date.parse('5 Feb 2021 00:00:00 GMT') / 1000,
+      },
+      {
+        open: 869.67,
+        high: 877.77,
+        low: 854.75,
+        close: 863.42,
+        volume: 20161720,
+        timeStamp: Date.parse('8 Feb 2021 00:00:00 GMT') / 1000,
+      },
     ]);
-    expect(Number.parseFloat(k.toFixed(3))).toEqual(83.205);
+    expect(Number.parseFloat(k.toFixed(3))).toEqual(63.721);
   });
 });
