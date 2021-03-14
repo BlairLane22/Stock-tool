@@ -2,7 +2,7 @@ import { stochasticOscillator } from '../../src/algorithms/stochasticOscillator'
 
 describe('Test stochaticOscillator', () => {
   test('stochaticOscillator over 3 days', async () => {
-    const k = stochasticOscillator(5, [
+    const k = stochasticOscillator(5, 5, [
       {
         open: 870.35,
         high: 891.5,
@@ -76,6 +76,12 @@ describe('Test stochaticOscillator', () => {
         timeStamp: Date.parse('8 Feb 2021 00:00:00 GMT') / 1000,
       },
     ]);
-    expect(Number.parseFloat(k.toFixed(3))).toEqual(63.721);
+    expect(k).toEqual([
+      82.9880478087649,
+      82.9880478087649,
+      82.9880478087649,
+      82.9880478087649,
+      82.9880478087649,
+    ]);
   });
 });

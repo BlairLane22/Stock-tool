@@ -67,6 +67,7 @@ interface Candle {
   volume: number;
   timeStamp: number;
 }
+
 interface FinnCandles {
   o: Array<number>;
   h: Array<number>;

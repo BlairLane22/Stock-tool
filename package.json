@@ -3,8 +3,8 @@
   "private": true,
   "version": "1.0.0",
   "description": "> TODO: description",
-  "author": "Monty Schmidt <monty@wuntusk.com>",
-  "homepage": "https://github.com/wuntusk/blairtools#readme",
+  "author": "Blair Lane <blairjacklane@gmail.com>",
+  "homepage": "https://github.com/BlairLane22/Stock-tool#readme",
   "license": "ISC",
   "main": "lib/src/index.js",
   "dependencies": {

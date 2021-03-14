@@ -2,9 +2,9 @@ import { exit } from '../util/exit';
 import { getQuote } from '../util/rest';
 import { getDailyCandles } from '../util/rest';
 import { movingAverageBuyDecision } from '../algorithms/movingAverage';
-import { stochasticOscillatorBuyDecision } from '../algorithms/stochasticOscillator';
+
 import { bollingerBandBuyDecision } from '../algorithms/bollingerBand';
-import { macdBuyDecision } from '../algorithms/macd';
+import { macdStochasticOscillator } from '../strategies/macd&StochasticOscillator';
 
 export async function buy(
   symbol: string,
@@ -25,12 +25,14 @@ export async function buy(
 
   //   Buy Decision
   const ma_buy = movingAverageBuyDecision(candles);
-  const k_buy = stochasticOscillatorBuyDecision(candles);
   const bb_buy = bollingerBandBuyDecision(quote, candles);
-  const macd_buy = macdBuyDecision(quote, candles);
+
+  const t = macdStochasticOscillator(quote, candles);
+
+  console.log(t.macd_buy);
 
   // Total buy score
-  const buy_score = ma_buy + k_buy + bb_buy + macd_buy;
+  const buy_score = ma_buy + bb_buy;
 
   // Purchase If statement
   if (buy_score >= 10) {

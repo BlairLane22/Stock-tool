@@ -2,7 +2,7 @@ import { smaCalculation } from '../../../src/algorithms/helpers/smaCalculation';
 
 describe('Test smaCalculation', () => {
   test('smaCalculation over 3 days', async () => {
-    const sma = smaCalculation(3, [
+    const sma = smaCalculation(3, 5, [
       {
         open: 870.35,
         high: 891.5,
@@ -77,6 +77,8 @@ describe('Test smaCalculation', () => {
       },
     ]);
     expect(sma).toEqual([
+      835.3766666666667,
+      855.7633333333333,
       859.1566666666668,
       852.3033333333333,
       855.2133333333333,
