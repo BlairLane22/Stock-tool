@@ -20,11 +20,15 @@ interface Quote {
   previousClose: number;
 }
 
-function macdStochasticOscillator(quote: Quote, candles: Candle[]) {
-  const macd_buy = macdBuyDecision(quote, candles);
-  const k_buy = stochasticOscillatorBuyDecision(candles);
+function macdStochasticOscillator(quote: Quote, candles: Candle[]): boolean {
+  const macd = macdBuyDecision(quote, candles);
+  const k = stochasticOscillatorBuyDecision(candles);
 
-  return { macd_buy: macd_buy, k_buy: k_buy };
+  if (macd && k) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 export { macdStochasticOscillator };

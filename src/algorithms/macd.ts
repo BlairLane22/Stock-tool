@@ -17,12 +17,10 @@ interface Quote {
   previousClose: number;
 }
 
-function macdBuyDecision(quote: Quote, candles: Candle[]): number {
+function macdBuyDecision(quote: Quote, candles: Candle[]): boolean {
   const ema_12 = emaCalculation(10, 350, quote, candles);
   const ema_26 = emaCalculation(30, 350, quote, candles);
   const ema_27 = emaCalculation(60, 350, quote, candles);
-
-  // const ema_final_before = ema_12_before - ema_26_before
 
   console.log(ema_12);
   console.log(ema_26);
@@ -31,10 +29,10 @@ function macdBuyDecision(quote: Quote, candles: Candle[]): number {
   const ema_final = ema_12[9] - ema_26[25];
   if (ema_final > 0) {
     console.log('MACD: Buy Stock');
-    return 5;
+    return true;
   } else {
     console.log('MACD: Neutral');
-    return 0;
+    return false;
   }
 }
 

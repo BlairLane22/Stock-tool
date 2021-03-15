@@ -36,17 +36,17 @@ function stochasticOscillator(
   return arr_final;
 }
 
-function stochasticOscillatorBuyDecision(candles: Candle[]): number {
+function stochasticOscillatorBuyDecision(candles: Candle[]): boolean {
   const k = stochasticOscillator(14, 20, candles);
 
   // console.log(k);
 
   if (k[19] < 15) {
     console.log('Stochastic Oscillator: Buy Stock');
-    return 5;
+    return true;
   } else {
     console.log('Stochastic Oscillator: Neutral');
-    return 0;
+    return false;
   }
 }
 
