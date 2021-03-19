@@ -1,10 +1,8 @@
 import { exit } from '../util/exit';
 import { getQuote } from '../util/rest';
 import { getDailyCandles } from '../util/rest';
-import { movingAverageBuyDecision } from '../algorithms/movingAverage';
-
-import { bollingerBandBuyDecision } from '../algorithms/bollingerBand';
 import { macdStochasticOscillator } from '../strategies/macd&StochasticOscillator';
+import { thanks } from '../algorithms/relativeStrengthIndex';
 
 export async function buy(
   symbol: string,
@@ -21,16 +19,14 @@ export async function buy(
   });
 
   //   Buy Decision
-  // const ma_buy = movingAverageBuyDecision(candles);
-  // const bb_buy = bollingerBandBuyDecision(quote, candles);
-
+  thanks(candles);
   const t = macdStochasticOscillator(quote, candles);
 
   // Purchase If statement
   if (t) {
-    console.log('Buy Stocks');
+    console.log('Buy Stock');
   } else {
-    console.log("Don't buy stock");
+    console.log("Don't buy Stock");
   }
 
   exit(0);
