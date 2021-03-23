@@ -1,7 +1,7 @@
 import { exit } from '../util/exit';
 import { getQuote } from '../util/rest';
 import { getDailyCandles } from '../util/rest';
-import { macdStochasticOscillator } from '../strategies/macd&StochasticOscillator';
+import { macdStochasticOscillator } from '../strategies/macd&stochasticOscillator';
 import { thanks } from '../algorithms/relativeStrengthIndex';
 
 export async function buy(
