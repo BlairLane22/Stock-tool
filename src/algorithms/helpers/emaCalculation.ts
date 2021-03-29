@@ -29,14 +29,12 @@ function emaCalculation(
   }
 
   const ema_final = [sum / days];
-
   for (let a = 1; a < duration; a += 1) {
     const ema =
       candles[num - duration + a].close * (2 / (1 + days)) +
       ema_final[a - 1] * (1 - 2 / (1 + days));
     ema_final.push(ema);
   }
-
   const ema_length = ema_final.length;
 
   return ema_final.slice(ema_length - days, ema_length);

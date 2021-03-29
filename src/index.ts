@@ -7,6 +7,7 @@ import { Command } from 'commander';
 import { name } from './commands/name';
 import { quote } from './commands/quote';
 import { buy } from './commands/buy';
+import { repetitiveBuy } from './commands/repetitiveBuy';
 const program = new Command();
 
 program.version(settings.version).description('gqlpages tools');
@@ -41,6 +42,19 @@ program
   .description(`get the purchase decision for a company`)
   .action(async (uri, cmdObj) => {
     buy(uri, cmdObj);
+  });
+
+program
+  .command('repetitiveBuy')
+  .description(`runs repetitive buying`)
+  .action(async (cmdObj) => {
+    try {
+      const symbol = repetitiveBuy();
+      buy(await symbol, cmdObj);
+      console.log(symbol);
+    } catch (e) {
+      console.log('There was an error. Please run again');
+    }
   });
 
 program.parse(process.argv);

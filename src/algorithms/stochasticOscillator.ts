@@ -41,7 +41,7 @@ function stochasticOscillator(
 function stochasticOscillatorBuyDecision(candles: Candle[]): boolean {
   const k = stochasticOscillator(14, 50, candles);
   let k_buy = false;
-  console.log(k);
+  // console.log(k);
 
   const k_19 = k[19];
   const k_18 = k[18];
