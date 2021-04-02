@@ -1,9 +1,7 @@
-import { exit } from '../util/exit';
 import { getQuote } from '../util/rest';
 import { getDailyCandles } from '../util/rest';
 import { macdStochasticOscillator } from '../strategies/macd&StochasticOscillator';
 import { thanks } from '../algorithms/relativeStrengthIndex';
-import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from 'constants';
 
 export async function buy(
   symbol: string,
@@ -42,6 +40,5 @@ export async function buy(
     console.log("Don't buy Stock");
   }
 
-  exit(0);
   return 0;
 }

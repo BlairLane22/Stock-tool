@@ -8,6 +8,7 @@ import { name } from './commands/name';
 import { quote } from './commands/quote';
 import { buy } from './commands/buy';
 import { repetitiveBuy } from './commands/repetitiveBuy';
+import { exit } from './util/exit';
 const program = new Command();
 
 program.version(settings.version).description('gqlpages tools');
@@ -41,19 +42,29 @@ program
   .command('buy <symbol>')
   .description(`get the purchase decision for a company`)
   .action(async (uri, cmdObj) => {
-    buy(uri, cmdObj);
+    await buy(uri, cmdObj);
+    exit();
   });
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 program
   .command('repetitiveBuy')
   .description(`runs repetitive buying`)
   .action(async (cmdObj) => {
-    try {
-      const symbol = repetitiveBuy();
-      buy(await symbol, cmdObj);
-      console.log(symbol);
-    } catch (e) {
-      console.log('There was an error. Please run again');
+    while (true) {
+      try {
+        const symbol = repetitiveBuy();
+        console.log('Symbol: ' + symbol);
+        await buy(symbol, cmdObj);
+        console.log();
+      } catch (e) {
+        console.log('There was an error. Please run again');
+      }
+
+      await sleep(7000);
     }
   });
 
