@@ -7,6 +7,7 @@ interface Candle {
   timeStamp: number;
 }
 
+// Returns the typical price over a certain period
 function typicalPrice(days: number, candles: Candle[]): number {
   let sum = 0;
   const num = candles.length;

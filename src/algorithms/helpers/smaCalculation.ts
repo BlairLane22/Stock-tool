@@ -7,6 +7,7 @@ interface Candle {
   timeStamp: number;
 }
 
+// Returns the sma over a certain period
 function smaCalculation(
   days: number,
   duration: number,

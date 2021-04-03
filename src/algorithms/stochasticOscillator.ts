@@ -1,3 +1,5 @@
+import { checkSlope } from './helpers/slopeCalculation';
+
 interface Candle {
   open: number;
   high: number;
@@ -38,16 +40,28 @@ function stochasticOscillator(
   return arr_final;
 }
 
+function smaStochasticOscillator(k: number[]): number[] {
+  const num = k.length;
+  const sma = [];
+
+  for (let t = 3; t < num; t += 1) {
+    let sum = 0;
+    for (let x = 0; x < 3; x++) {
+      sum += k[t - x];
+    }
+    sma.push(sum / 3);
+  }
+
+  return sma;
+}
+
 function stochasticOscillatorBuyDecision(candles: Candle[]): boolean {
-  const k = stochasticOscillator(14, 50, candles);
+  const k = stochasticOscillator(14, 10, candles);
+  const d = smaStochasticOscillator(k);
+  const slope = checkSlope(k, 3);
   let k_buy = false;
-  // console.log(k);
 
-  const k_19 = k[19];
-  const k_18 = k[18];
-  const k_17 = k[17];
-
-  if (k_19 > k_18 && k_19 > (k_18 + k_17) / 2) {
+  if (k > d && slope > 0.2) {
     k_buy = true;
   }
 

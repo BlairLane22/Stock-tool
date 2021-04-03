@@ -9,6 +9,7 @@ interface Candle {
   timeStamp: number;
 }
 
+// Returns the standard deviation over a certain period
 function standDeviation(days: number, candles: Candle[]): number {
   let sum = 0;
   const num = candles.length;

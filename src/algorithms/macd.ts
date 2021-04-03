@@ -1,5 +1,5 @@
-import { lte } from 'lodash';
 import { emaCalculation } from './helpers/emaCalculation';
+import { checkSlope } from './helpers/slopeCalculation';
 
 interface Candle {
   open: number;
@@ -16,19 +16,6 @@ interface Quote {
   low: number;
   current: number;
   previousClose: number;
-}
-
-function checkSlope(macd: number[]) {
-  let sum = 0;
-  for (let c = 1; c < macd.length; c++) {
-    if (macd[c] > 0) {
-      sum += macd[c] - macd[c - 1];
-    } else {
-      sum -= macd[c - 1] - macd[c];
-    }
-  }
-
-  return sum / macd.length;
 }
 
 function signalLine(macd: number[]): number {
@@ -56,14 +43,9 @@ function macdBuyDecision(quote: Quote, candles: Candle[]): boolean {
   }
 
   const signal_line = signalLine(macd);
+  const slope = checkSlope(macd, 3);
 
-  // console.log(macd);
-  const slope = checkSlope(macd);
-  // console.log(slope);
-  // console.log(macd[11]);
-  // console.log(signal_line);
-
-  if (macd[11] > signal_line && slope > 0.25) {
+  if (macd[11] > signal_line && slope > 0.2) {
     macd_buy = true;
   }
 

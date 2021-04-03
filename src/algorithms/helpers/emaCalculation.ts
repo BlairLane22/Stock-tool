@@ -15,6 +15,7 @@ interface Quote {
   previousClose: number;
 }
 
+// Returns the ema over a certain period
 function emaCalculation(
   days: number,
   duration: number,
