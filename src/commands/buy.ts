@@ -1,6 +1,6 @@
 import { getQuote } from '../util/rest';
 import { getDailyCandles } from '../util/rest';
-import { macdStochasticOscillator } from '../strategies/macd&StochasticOscillator';
+import { macdStochasticOscillator } from '../strategies/macdStochasticOscillator';
 import { relativeStrengthIndexBuyDecision } from '../algorithms/relativeStrengthIndex';
 
 export async function buy(
