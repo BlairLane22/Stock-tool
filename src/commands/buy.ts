@@ -1,7 +1,7 @@
 import { getQuote } from '../util/rest';
 import { getDailyCandles } from '../util/rest';
 import { macdStochasticOscillator } from '../strategies/macd&StochasticOscillator';
-import { thanks } from '../algorithms/relativeStrengthIndex';
+import { relativeStrengthIndexBuyDecision } from '../algorithms/relativeStrengthIndex';
 
 export async function buy(
   symbol: string,
@@ -26,7 +26,7 @@ export async function buy(
   let t;
   try {
     //   Buy Decision
-    thanks(candles);
+    relativeStrengthIndexBuyDecision(candles);
     t = macdStochasticOscillator(quote, candles);
   } catch (e) {
     console.log('Something was wrong with the quote. Please run again');

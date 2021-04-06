@@ -1,4 +1,4 @@
-import { main } from './helpers/averageGainLoss';
+import { averageGainLoss } from './helpers/averageGainLoss';
 
 interface Candle {
   open: number;
@@ -9,11 +9,19 @@ interface Candle {
   timeStamp: number;
 }
 
-function thanks(candles: Candle[]): void {
-  const averages = main(14, candles);
+function relativeStrengthIndexBuyDecision(candles: Candle[]): void {
+  const averages = averageGainLoss(14, candles);
+  const gain = averages.gain;
+  const loss = averages.loss;
 
-  // console.log(averages.sumHigh);
-  // console.log(averages.sumLow);
+  console.log(gain);
+  console.log(loss);
+
+  const rs = gain / loss;
+  console.log(rs);
+
+  const s1 = 100 - 100 / (1 + rs);
+  console.log('Final: ' + s1);
 }
 
-export { thanks };
+export { relativeStrengthIndexBuyDecision };

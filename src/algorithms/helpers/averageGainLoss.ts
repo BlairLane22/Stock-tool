@@ -7,39 +7,39 @@ interface Candle {
   timeStamp: number;
 }
 
-function main(days: number, candles: Candle[]) {
-  const high = [];
-  const low = [];
+function averageGainLoss(days: number, candles: Candle[]) {
   const num = candles.length;
 
-  for (let u = days; u > 0; u -= 1) {
-    const today = candles[num - u].close;
-    const yesterday = candles[num - u - 1].close;
+  const gain_percent = [];
+  const loss_percent = [];
+  let count = 0;
 
-    const sum = (today - yesterday) / today;
+  for (let s = num - days; s < num; s += 1) {
+    const diff = candles[s].close - candles[s - 1].close;
 
-    if (sum > 0) {
-      high.push(sum);
+    if (diff > 0) {
+      gain_percent[count] = diff;
+      loss_percent[count] = 0;
     } else {
-      low.push(sum);
+      gain_percent[count] = 0;
+      loss_percent[count] = diff;
     }
+
+    count += 1;
   }
 
-  let sumHigh = 0;
-  let sumLow = 0;
+  let gain_sum = 0;
+  let loss_sum = 0;
 
-  for (let i = 0; i < high.length; i++) {
-    sumHigh += high[i];
+  for (let y = 0; y < 14; y++) {
+    gain_sum += gain_percent[y];
+    loss_sum += loss_percent[y];
   }
 
-  for (let i = 0; i < low.length; i++) {
-    sumLow += low[i];
-  }
+  const gain = gain_sum / 14;
+  const loss = loss_sum / 14;
 
-  sumHigh /= days;
-  sumLow /= days;
-
-  return { sumHigh, sumLow };
+  return { gain, loss };
 }
 
-export { main };
+export { averageGainLoss };
