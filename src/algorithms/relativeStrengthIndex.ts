@@ -10,14 +10,19 @@ interface Candle {
 }
 
 function relativeStrengthIndexBuyDecision(candles: Candle[]): void {
-  const averages = averageGainLoss(14, candles);
+  const averages = averageGainLoss(14, 250, candles);
   const gain = averages.gain;
   const loss = averages.loss;
+  const gain_num = gain.length;
+  const loss_num = loss.length;
+  let rs = 0;
 
   console.log(gain);
   console.log(loss);
 
-  const rs = gain / loss;
+  for (let s = 0; s < gain_num; s++) {
+    rs = gain[gain_num] / loss[loss_num];
+  }
   console.log(rs);
 
   const s1 = 100 - 100 / (1 + rs);

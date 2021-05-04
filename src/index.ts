@@ -9,6 +9,7 @@ import { quote } from './commands/quote';
 import { buy } from './commands/buy';
 import { repetitiveBuy } from './commands/repetitiveBuy';
 import { exit } from './util/exit';
+import fs from 'fs';
 const program = new Command();
 
 program.version(settings.version).description('gqlpages tools');
@@ -58,13 +59,24 @@ program
       try {
         const symbol = repetitiveBuy();
         console.log('Symbol: ' + symbol);
-        await buy(symbol, cmdObj);
+        const buyDecision = await buy(symbol, cmdObj);
+
+        if (buyDecision == 1) {
+          // write to a new file named symbol.txt
+          fs.appendFile('symbol.txt', symbol + '\r\n', (err) => {
+            // throws an error, you could also catch it here
+            if (err) throw err;
+
+            // success case, the file was saved
+            console.log('Symbol saved!');
+          });
+        }
         console.log();
       } catch (e) {
         console.log('There was an error. Please run again');
       }
 
-      await sleep(7000);
+      await sleep(5000);
     }
   });
 

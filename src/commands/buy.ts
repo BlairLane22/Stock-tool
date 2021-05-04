@@ -36,9 +36,9 @@ export async function buy(
   // Purchase If statement
   if (t) {
     console.log('Buy Stock');
+    return 1;
   } else {
     console.log("Don't buy Stock");
+    return 0;
   }
-
-  return 0;
 }

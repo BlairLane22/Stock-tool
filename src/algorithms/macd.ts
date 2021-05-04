@@ -45,7 +45,7 @@ function macdBuyDecision(quote: Quote, candles: Candle[]): boolean {
   const signal_line = signalLine(macd);
   const slope = checkSlope(macd, 3);
 
-  if (macd[11] > signal_line && slope > 0.2) {
+  if (macd[11] > signal_line && slope > 0.12) {
     macd_buy = true;
   }
 

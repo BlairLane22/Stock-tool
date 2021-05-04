@@ -7,14 +7,17 @@ interface Candle {
   timeStamp: number;
 }
 
-function averageGainLoss(days: number, candles: Candle[]) {
+function averageGainLoss(days: number, duration: number, candles: Candle[]) {
   const num = candles.length;
 
   const gain_percent = [];
   const loss_percent = [];
   let count = 0;
 
-  for (let s = num - days; s < num; s += 1) {
+  const gain: number[] = [50];
+  const loss: number[] = [50];
+
+  for (let s = num - duration; s < num; s += 1) {
     const diff = candles[s].close - candles[s - 1].close;
 
     if (diff > 0) {
@@ -28,16 +31,21 @@ function averageGainLoss(days: number, candles: Candle[]) {
     count += 1;
   }
 
-  let gain_sum = 0;
-  let loss_sum = 0;
+  for (let d = num - days; d < num; d++) {
+    let gain_sum = 0;
+    let loss_sum = 0;
+    const gain_num = gain.length;
+    const loss_num = loss.length;
 
-  for (let y = 0; y < 14; y++) {
-    gain_sum += gain_percent[y];
-    loss_sum += loss_percent[y];
+    for (let y = d - days; y < d; y++) {
+      gain_sum += gain_percent[y];
+      loss_sum += loss_percent[y];
+    }
+    console.log(gain[gain_num - 1] * 13 + gain_sum / days);
+
+    gain.push(gain[gain_num - 1] * 13 + gain_sum / days);
+    loss.push(loss[loss_num - 1] * 13 + loss_sum / days);
   }
-
-  const gain = gain_sum / 14;
-  const loss = loss_sum / 14;
 
   return { gain, loss };
 }
