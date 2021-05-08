@@ -17,16 +17,16 @@ function relativeStrengthIndexBuyDecision(candles: Candle[]): void {
   const loss_num = loss.length;
   let rs = 0;
 
-  console.log(gain);
-  console.log(loss);
+  // console.log(gain);
+  // console.log(loss);
 
   for (let s = 0; s < gain_num; s++) {
     rs = gain[gain_num] / loss[loss_num];
   }
-  console.log(rs);
+  // console.log(rs);
 
   const s1 = 100 - 100 / (1 + rs);
-  console.log('Final: ' + s1);
+  // console.log('Final: ' + s1);
 }
 
 export { relativeStrengthIndexBuyDecision };

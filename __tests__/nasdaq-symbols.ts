@@ -1,4 +1,4 @@
-import { getName } from '../src/util/nasdaq-symbols';
+import { getName } from '../src/util/search-symbols';
 
 describe('get stock name', () => {
   test('can find TSLA', async () => {

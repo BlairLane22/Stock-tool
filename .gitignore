@@ -2,4 +2,6 @@ node_modules
 lib
 npm-debug.log
 variables.env
+symbols.txt
+total-stock-symbol-list.csv
 *~

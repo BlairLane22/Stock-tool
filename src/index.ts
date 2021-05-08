@@ -9,6 +9,7 @@ import { quote } from './commands/quote';
 import { buy } from './commands/buy';
 import { repetitiveBuy } from './commands/repetitiveBuy';
 import { exit } from './util/exit';
+import { loadStockArray } from './util/search-symbols';
 import fs from 'fs';
 const program = new Command();
 
@@ -51,6 +52,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getArray() {
+  return loadStockArray;
+}
+
 program
   .command('repetitiveBuy')
   .description(`runs repetitive buying`)
@@ -71,12 +76,13 @@ program
             console.log('Symbol saved!');
           });
         }
+
         console.log();
       } catch (e) {
         console.log('There was an error. Please run again');
       }
 
-      await sleep(5000);
+      await sleep(10000);
     }
   });
 

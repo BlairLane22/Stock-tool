@@ -41,7 +41,7 @@ function averageGainLoss(days: number, duration: number, candles: Candle[]) {
       gain_sum += gain_percent[y];
       loss_sum += loss_percent[y];
     }
-    console.log(gain[gain_num - 1] * 13 + gain_sum / days);
+    // console.log(gain[gain_num - 1] * 13 + gain_sum / days);
 
     gain.push(gain[gain_num - 1] * 13 + gain_sum / days);
     loss.push(loss[loss_num - 1] * 13 + loss_sum / days);
