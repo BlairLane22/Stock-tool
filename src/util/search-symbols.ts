@@ -10,12 +10,13 @@ export function loadStockArray(): Array<StockDescription> {
   const results: Array<StockDescription> = [];
 
   fs.createReadStream(
-    '/Users/blairlane/Desktop/Stock-tool/src/util/nasdaq-listed-symbols_csv.csv',
+    '/Users/blairlane/Desktop/Stock-tool/src/util/total-stock-symbol-list.csv',
   )
     .pipe(csv())
     .on('data', (data: StockDescription) => results.push(data))
     .on('end', () => {
       console.log(results);
+      console.log();
       // [
       //   { NAME: 'Daffy Duck', AGE: '24' },
       //   { NAME: 'Bugs Bunny', AGE: '22' }
