@@ -9,7 +9,6 @@ import { quote } from './commands/quote';
 import { buy } from './commands/buy';
 import { repetitiveBuy } from './commands/repetitiveBuy';
 import { exit } from './util/exit';
-import { loadStockArray } from './util/search-symbols';
 import fs from 'fs';
 const program = new Command();
 
@@ -50,10 +49,6 @@ program
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function getArray() {
-  return loadStockArray;
 }
 
 program

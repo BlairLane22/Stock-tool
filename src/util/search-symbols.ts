@@ -9,9 +9,7 @@ interface StockDescription {
 export function loadStockArray(): Array<StockDescription> {
   const results: Array<StockDescription> = [];
 
-  fs.createReadStream(
-    '/Users/blairlane/Desktop/Stock-tool/src/util/total-stock-symbol-list.csv',
-  )
+  fs.createReadStream('./src/util/total-stock-symbol-list.csv')
     .pipe(csv())
     .on('data', (data: StockDescription) => results.push(data))
     .on('end', () => {
