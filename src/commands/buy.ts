@@ -23,6 +23,8 @@ export async function buy(
     return 0;
   }
 
+  console.log('Symbol: ' + symbol);
+
   let t;
   try {
     //   Buy Decision
