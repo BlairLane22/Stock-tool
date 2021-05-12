@@ -58,7 +58,6 @@ program
     while (true) {
       try {
         const symbol = repetitiveBuy();
-        console.log('Symbol: ' + symbol);
         const buyDecision = await buy(symbol, cmdObj);
 
         if (buyDecision == 1) {
