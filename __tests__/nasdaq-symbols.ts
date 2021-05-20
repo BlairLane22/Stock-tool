@@ -1,4 +1,4 @@
-import { getName } from '../src/util/search-symbols';
+import { getName } from '../src/util/symbolList';
 
 describe('get stock name', () => {
   test('can find TSLA', async () => {

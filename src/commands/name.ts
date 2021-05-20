@@ -1,4 +1,4 @@
-import { stockDictionary, getName } from '../util/search-symbols';
+import { stockDictionary, getName } from '../util/symbolList';
 
 export async function name(symbol: string): Promise<void> {
   const symbolUpper = symbol.toUpperCase();

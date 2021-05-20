@@ -1,4 +1,4 @@
-import { stocks } from '../util/search-symbols';
+import { stocks } from '../util/symbolList';
 
 export function repetitiveBuy(): string {
   const count = stocks.length;
