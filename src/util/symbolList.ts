@@ -16,8 +16,8 @@ export function loadStockArray(): Array<StockDescription> {
       console.log(results);
       console.log();
       // [
-      //   { symbol: 'Daffy Duck', companyName: '24' },
-      //   { symbol: 'Bugs Bunny', companyName: '22' }
+      //   { symbol: 'Daffy Duck', companyName: 'DD' },
+      //   { symbol: 'Bugs Bunny', companyName: 'BB' }
       // ]
     });
 
@@ -27,8 +27,6 @@ export function loadStockArray(): Array<StockDescription> {
 export const stocks: Array<StockDescription> = loadStockArray();
 
 export const stockDictionary: Record<string, string> = {};
-
-stocks;
 
 export function getName(symbol: string): string {
   const symbolUpper = symbol.toUpperCase();
