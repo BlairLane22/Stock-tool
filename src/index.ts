@@ -4,7 +4,6 @@ require('dotenv').config({
 });
 import settings from '../package.json';
 import { Command } from 'commander';
-import { name } from './commands/name';
 import { quote } from './commands/quote';
 import { buy } from './commands/buy';
 import { repetitiveBuy } from './commands/repetitiveBuy';
@@ -30,13 +29,6 @@ program
   .option('--verbose', 'show all info')
   .action(async (uri, cmdObj) => {
     quote(uri, cmdObj);
-  });
-
-program
-  .command('name <symbol>')
-  .description(`get the company name for a symbol`)
-  .action(async (symbol) => {
-    name(symbol);
   });
 
 program
