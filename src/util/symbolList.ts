@@ -25,10 +25,3 @@ export function loadStockArray(): Array<StockDescription> {
 }
 
 export const stocks: Array<StockDescription> = loadStockArray();
-
-export const stockDictionary: Record<string, string> = {};
-
-export function getName(symbol: string): string {
-  const symbolUpper = symbol.toUpperCase();
-  return stockDictionary[symbolUpper];
-}
