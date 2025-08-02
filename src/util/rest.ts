@@ -88,7 +88,7 @@ export async function getDailyCandles({
   //const fromStamp = from.getTime() / 1000;
   //const toStamp = to.getTime() / 1000;
   const result = await getData<FinnCandles>(
-    `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${fromStamp}&to=${toStamp}&token=${process.env.FINNHUB_API_TOKEN}`,
+    `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=W&from=${fromStamp}&to=${toStamp}&token=${process.env.FINNHUB_API_TOKEN}`,
   );
 
   const candles: Array<Candle> = [];

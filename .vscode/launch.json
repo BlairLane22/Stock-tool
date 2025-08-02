@@ -20,7 +20,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program ",
+            "name": "Launch Program",
             "program": "${workspaceFolder}/src/index.ts",
             "outputCapture": "std",
             "preLaunchTask": "tsc: build - tsconfig.json",
@@ -30,5 +30,6 @@
             //"args": ["deploy", "test-data/ppp","--overwrite"]
             "args": ["env"]
         }
+          
     ]
 }

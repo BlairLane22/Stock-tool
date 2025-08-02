@@ -1,0 +1,43 @@
+{
+  "symbol": "TEST_NO_PATTERN",
+  "timeframe": "daily",
+  "description": "Simple uptrending stock with no cup and handle pattern. Steady upward movement without the required cup formation.",
+  "expectedPattern": {
+    "type": "none",
+    "confidence": "N/A",
+    "shouldDetect": false,
+    "reason": "No cup formation - simple uptrend"
+  },
+  "candles": [
+    {"open": 95.00, "high": 96.20, "low": 94.50, "close": 95.80, "volume": 1000000, "timeStamp": 1672531200},
+    {"open": 95.80, "high": 97.10, "low": 95.30, "close": 96.60, "volume": 1020000, "timeStamp": 1672617600},
+    {"open": 96.60, "high": 97.90, "low": 96.10, "close": 97.40, "volume": 1040000, "timeStamp": 1672704000},
+    {"open": 97.40, "high": 98.70, "low": 96.90, "close": 98.20, "volume": 1060000, "timeStamp": 1672790400},
+    {"open": 98.20, "high": 99.50, "low": 97.70, "close": 99.00, "volume": 1080000, "timeStamp": 1672876800},
+    {"open": 99.00, "high": 100.30, "low": 98.50, "close": 99.80, "volume": 1100000, "timeStamp": 1672963200},
+    {"open": 99.80, "high": 101.10, "low": 99.30, "close": 100.60, "volume": 1120000, "timeStamp": 1673049600},
+    {"open": 100.60, "high": 101.90, "low": 100.10, "close": 101.40, "volume": 1140000, "timeStamp": 1673136000},
+    {"open": 101.40, "high": 102.70, "low": 100.90, "close": 102.20, "volume": 1160000, "timeStamp": 1673222400},
+    {"open": 102.20, "high": 103.50, "low": 101.70, "close": 103.00, "volume": 1180000, "timeStamp": 1673308800},
+    {"open": 103.00, "high": 104.30, "low": 102.50, "close": 103.80, "volume": 1200000, "timeStamp": 1673395200},
+    {"open": 103.80, "high": 105.10, "low": 103.30, "close": 104.60, "volume": 1220000, "timeStamp": 1673481600},
+    {"open": 104.60, "high": 105.90, "low": 104.10, "close": 105.40, "volume": 1240000, "timeStamp": 1673568000},
+    {"open": 105.40, "high": 106.70, "low": 104.90, "close": 106.20, "volume": 1260000, "timeStamp": 1673654400},
+    {"open": 106.20, "high": 107.50, "low": 105.70, "close": 107.00, "volume": 1280000, "timeStamp": 1673740800},
+    {"open": 107.00, "high": 108.30, "low": 106.50, "close": 107.80, "volume": 1300000, "timeStamp": 1673827200},
+    {"open": 107.80, "high": 109.10, "low": 107.30, "close": 108.60, "volume": 1320000, "timeStamp": 1673913600},
+    {"open": 108.60, "high": 109.90, "low": 108.10, "close": 109.40, "volume": 1340000, "timeStamp": 1674000000},
+    {"open": 109.40, "high": 110.70, "low": 108.90, "close": 110.20, "volume": 1360000, "timeStamp": 1674086400},
+    {"open": 110.20, "high": 111.50, "low": 109.70, "close": 111.00, "volume": 1380000, "timeStamp": 1674172800},
+    {"open": 111.00, "high": 112.30, "low": 110.50, "close": 111.80, "volume": 1400000, "timeStamp": 1674259200},
+    {"open": 111.80, "high": 113.10, "low": 111.30, "close": 112.60, "volume": 1420000, "timeStamp": 1674345600},
+    {"open": 112.60, "high": 113.90, "low": 112.10, "close": 113.40, "volume": 1440000, "timeStamp": 1674432000},
+    {"open": 113.40, "high": 114.70, "low": 112.90, "close": 114.20, "volume": 1460000, "timeStamp": 1674518400},
+    {"open": 114.20, "high": 115.50, "low": 113.70, "close": 115.00, "volume": 1480000, "timeStamp": 1674604800},
+    {"open": 115.00, "high": 116.30, "low": 114.50, "close": 115.80, "volume": 1500000, "timeStamp": 1674691200},
+    {"open": 115.80, "high": 117.10, "low": 115.30, "close": 116.60, "volume": 1520000, "timeStamp": 1674777600},
+    {"open": 116.60, "high": 117.90, "low": 116.10, "close": 117.40, "volume": 1540000, "timeStamp": 1674864000},
+    {"open": 117.40, "high": 118.70, "low": 116.90, "close": 118.20, "volume": 1560000, "timeStamp": 1674950400},
+    {"open": 118.20, "high": 119.50, "low": 117.70, "close": 119.00, "volume": 1580000, "timeStamp": 1675036800}
+  ]
+}
