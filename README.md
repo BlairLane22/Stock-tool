@@ -10,7 +10,10 @@ A comprehensive technical analysis system providing both command-line interface 
 # Install dependencies
 npm install
 
-# Start the API server
+# Start the API server (simple version - recommended)
+npm run dev-server-simple
+
+# Alternative: Full server (if route imports work)
 npm run dev-server
 
 # Test the API
@@ -45,7 +48,8 @@ npm start mfi AAPL --period 21
 
 ### Server Management
 ```bash
-npm run dev-server          # Start development server
+npm run dev-server-simple   # Start simple development server (recommended)
+npm run dev-server          # Start full development server
 npm run server              # Start production server
 ```
 
@@ -246,12 +250,31 @@ npm run build
 
 ### Available Scripts
 ```bash
-npm run build          # Build TypeScript to JavaScript
-npm start              # Run CLI commands
-npm run dev-server     # Start development API server
-npm run server         # Start production API server
-npm test               # Run tests (if available)
+npm run build              # Build TypeScript to JavaScript
+npm start                  # Run CLI commands
+npm run dev-server-simple  # Start simple development API server (recommended)
+npm run dev-server         # Start full development API server
+npm run server             # Start production API server
+npm test                   # Run tests (if available)
 ```
+
+### Troubleshooting
+
+#### Server Import Issues
+If you encounter module import errors when running `npm run dev-server`, use the simple server instead:
+
+```bash
+# Use this instead of dev-server if you get import errors
+npm run dev-server-simple
+```
+
+The simple server uses dynamic imports and avoids complex route file dependencies while providing the same core API functionality.
+
+#### Common Issues
+- **Module not found errors**: Use `npm run dev-server-simple`
+- **TypeScript compilation errors**: Run `npm run build` first
+- **Port already in use**: Change the PORT environment variable or kill existing processes
+- **API rate limits**: Use `?mock=true` parameter for testing without API calls
 
 ### Project Structure
 ```

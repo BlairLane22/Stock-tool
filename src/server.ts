@@ -1,11 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import rsiRoutes from './routes/rsiRoutes.js';
-import bollingerRoutes from './routes/bollingerRoutes.js';
-import mfiRoutes from './routes/mfiRoutes.js';
-import imiRoutes from './routes/imiRoutes.js';
-import cupHandleRoutes from './routes/cupHandleRoutes.js';
-import macdRoutes from './routes/macdRoutes.js';
+import rsiRoutes from './routes/rsiRoutes';
+import bollingerRoutes from './routes/bollingerRoutes';
+import mfiRoutes from './routes/mfiRoutes';
+import imiRoutes from './routes/imiRoutes';
+import cupHandleRoutes from './routes/cupHandleRoutes';
+import macdRoutes from './routes/macdRoutes';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
