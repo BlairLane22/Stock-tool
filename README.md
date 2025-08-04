@@ -160,18 +160,22 @@ curl "http://localhost:3000/api/mfi/AAPL?mock=true"
 
 ## 📈 Data Sources
 
-### Live Market Data
-- **Alpha Vantage API** - Real-time and historical stock data
-- **Automatic fallback** to mock data if API limits reached
+### Mock Data (Default) ⭐
+- **Default for all endpoints** - No API keys required
+- **Realistic patterns** - Includes volatility cycles and trends
+- **No rate limits** - Perfect for development and testing
+- **Instant response** - No network delays
+
+### Live Market Data (Optional)
+- **Finnhub API** - Real-time and historical stock data
+- **Alpha Vantage API** - Alternative real market data source
+- **Usage**: Add `?mock=false` to any endpoint
+- **Requires API keys** - See setup instructions below
 
 ### Test Data
 - **Predefined datasets** - Use `--test-data filename` or `?testData=filename`
 - **IBM recent data** - `ibm-recent-data` for testing with real market patterns
-
-### Mock Data
-- **Generated realistic data** - Use `--mock` or `?mock=true`
-- **No API rate limits** - Perfect for development and testing
-- **Realistic patterns** - Includes volatility cycles and trends
+- **CLI only** - Available for command-line interface
 
 ## 🎯 Response Formats
 
@@ -274,7 +278,33 @@ The simple server uses dynamic imports and avoids complex route file dependencie
 - **Module not found errors**: Use `npm run dev-server-simple`
 - **TypeScript compilation errors**: Run `npm run build` first
 - **Port already in use**: Change the PORT environment variable or kill existing processes
-- **API rate limits**: Use `?mock=true` parameter for testing without API calls
+- **401 API errors**: The system uses mock data by default, no API keys required
+- **API rate limits**: All endpoints default to mock data (`mock=true`)
+
+#### API Key Setup (Optional)
+The API works with mock data by default. To use real market data:
+
+1. **Copy environment file**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Get API keys** (optional):
+   - [Finnhub API](https://finnhub.io/register) - Free tier available
+   - [Alpha Vantage API](https://www.alphavantage.co/support/#api-key) - Free tier available
+
+3. **Add keys to .env file**:
+   ```bash
+   FINNHUB_API_TOKEN=your_token_here
+   ```
+
+4. **Use real data**:
+   ```bash
+   # Add mock=false to use real API data
+   curl "http://localhost:3000/api/rsi/AAPL/quick?mock=false"
+   ```
+
+**Note**: Mock data is realistic and perfect for development/testing without API limits.
 
 ### Project Structure
 ```
