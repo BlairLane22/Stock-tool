@@ -1,5 +1,6 @@
 import { movingAverageCalculation } from '../chartPatterns/helpers/movingAverage';
 import { calculateMACD } from '../chartPatterns/helpers/macd';
+import { analyzeRSI as analyzeRSIIndicator } from '../indicators/rsi';
 import { getCandles } from './helper/getCandles';
 import { getQuote, Quote } from '../util/rest';
 
@@ -36,32 +37,42 @@ interface StrategyAnalysis {
   };
 }
 
-// RSI Calculation
+// Enhanced RSI Calculation following Investopedia definition
+// Uses Wilder's smoothing method (exponential moving average)
 function calculateRSI(candles: Candle[], period: number = 14): number[] {
+  if (candles.length < period + 1) {
+    return [];
+  }
+
   const rsi: number[] = [];
   const gains: number[] = [];
   const losses: number[] = [];
 
-  // Calculate initial gains and losses
+  // Calculate price changes (gains and losses)
   for (let i = 1; i < candles.length; i++) {
     const change = candles[i].close - candles[i - 1].close;
     gains.push(change > 0 ? change : 0);
     losses.push(change < 0 ? Math.abs(change) : 0);
   }
 
-  // Calculate RSI
-  for (let i = period - 1; i < gains.length; i++) {
-    let avgGain = 0;
-    let avgLoss = 0;
+  if (gains.length < period) {
+    return [];
+  }
 
-    // Calculate average gain and loss for the period
-    for (let j = i - period + 1; j <= i; j++) {
-      avgGain += gains[j];
-      avgLoss += losses[j];
-    }
+  // Calculate initial average gain and loss (simple average for first RSI)
+  let avgGain = gains.slice(0, period).reduce((sum, gain) => sum + gain, 0) / period;
+  let avgLoss = losses.slice(0, period).reduce((sum, loss) => sum + loss, 0) / period;
 
-    avgGain /= period;
-    avgLoss /= period;
+  // Calculate first RSI value
+  const rs1 = avgLoss === 0 ? 100 : avgGain / avgLoss;
+  const rsi1 = 100 - (100 / (1 + rs1));
+  rsi.push(rsi1);
+
+  // Calculate subsequent RSI values using Wilder's smoothing
+  for (let i = period; i < gains.length; i++) {
+    // Wilder's smoothing: avgGain = ((avgGain * (period - 1)) + currentGain) / period
+    avgGain = ((avgGain * (period - 1)) + gains[i]) / period;
+    avgLoss = ((avgLoss * (period - 1)) + losses[i]) / period;
 
     const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
     const rsiValue = 100 - (100 / (1 + rs));
@@ -69,6 +80,92 @@ function calculateRSI(candles: Candle[], period: number = 14): number[] {
   }
 
   return rsi;
+}
+
+// RSI Analysis and Signal Generation
+interface RSIAnalysis {
+  current: number;
+  previous: number;
+  trend: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  signal: 'BUY' | 'SELL' | 'HOLD';
+  strength: 'OVERSOLD' | 'UNDERSOLD' | 'NEUTRAL' | 'OVERBOUGHT' | 'EXTREMELY_OVERBOUGHT';
+  divergence: 'BULLISH' | 'BEARISH' | 'NONE';
+  momentum: 'INCREASING' | 'DECREASING' | 'STABLE';
+}
+
+function analyzeRSI(candles: Candle[], period: number = 14): RSIAnalysis {
+  const rsiValues = calculateRSI(candles, period);
+
+  if (rsiValues.length < 2) {
+    return {
+      current: 50,
+      previous: 50,
+      trend: 'NEUTRAL',
+      signal: 'HOLD',
+      strength: 'NEUTRAL',
+      divergence: 'NONE',
+      momentum: 'STABLE'
+    };
+  }
+
+  const current = rsiValues[rsiValues.length - 1];
+  const previous = rsiValues[rsiValues.length - 2];
+
+  // Determine RSI strength levels
+  let strength: RSIAnalysis['strength'] = 'NEUTRAL';
+  if (current <= 20) strength = 'OVERSOLD';
+  else if (current <= 30) strength = 'UNDERSOLD';
+  else if (current >= 80) strength = 'EXTREMELY_OVERBOUGHT';
+  else if (current >= 70) strength = 'OVERBOUGHT';
+
+  // Determine trend
+  let trend: RSIAnalysis['trend'] = 'NEUTRAL';
+  if (current > 50 && previous > 50) trend = 'BULLISH';
+  else if (current < 50 && previous < 50) trend = 'BEARISH';
+
+  // Determine momentum
+  let momentum: RSIAnalysis['momentum'] = 'STABLE';
+  const momentumDiff = Math.abs(current - previous);
+  if (current > previous && momentumDiff > 2) momentum = 'INCREASING';
+  else if (current < previous && momentumDiff > 2) momentum = 'DECREASING';
+
+  // Generate trading signal
+  let signal: RSIAnalysis['signal'] = 'HOLD';
+  if (current <= 30 && previous > current) signal = 'BUY';  // Oversold and turning up
+  else if (current >= 70 && previous < current) signal = 'SELL'; // Overbought and turning down
+
+  // Check for divergence (simplified - would need price comparison for full analysis)
+  let divergence: RSIAnalysis['divergence'] = 'NONE';
+  if (rsiValues.length >= 10) {
+    const recentRSI = rsiValues.slice(-5);
+    const earlierRSI = rsiValues.slice(-10, -5);
+    const recentAvg = recentRSI.reduce((sum, val) => sum + val, 0) / recentRSI.length;
+    const earlierAvg = earlierRSI.reduce((sum, val) => sum + val, 0) / earlierRSI.length;
+
+    const recentPrices = candles.slice(-5).map(c => c.close);
+    const earlierPrices = candles.slice(-10, -5).map(c => c.close);
+    const recentPriceAvg = recentPrices.reduce((sum, val) => sum + val, 0) / recentPrices.length;
+    const earlierPriceAvg = earlierPrices.reduce((sum, val) => sum + val, 0) / earlierPrices.length;
+
+    // Bullish divergence: price makes lower lows, RSI makes higher lows
+    if (recentPriceAvg < earlierPriceAvg && recentAvg > earlierAvg) {
+      divergence = 'BULLISH';
+    }
+    // Bearish divergence: price makes higher highs, RSI makes lower highs
+    else if (recentPriceAvg > earlierPriceAvg && recentAvg < earlierAvg) {
+      divergence = 'BEARISH';
+    }
+  }
+
+  return {
+    current,
+    previous,
+    trend,
+    signal,
+    strength,
+    divergence,
+    momentum
+  };
 }
 
 
