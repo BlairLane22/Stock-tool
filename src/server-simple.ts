@@ -56,8 +56,8 @@ app.get('/api/rsi/:symbol/quick', async (req, res) => {
     const { symbol } = req.params;
     const { period = '14', mock } = req.query;
 
-    // Determine if we should use mock data
-    const useMock = mock === 'true' || (!hasApiTokens && mock !== 'false');
+    // Determine if we should use mock data (default to mock even with API tokens)
+    const useMock = mock !== 'false'; // Only use real API if explicitly requested with mock=false
 
     // Generate mock data
     const mockResult = {
@@ -107,8 +107,8 @@ app.get('/api/bollinger/:symbol/quick', async (req, res) => {
     const { symbol } = req.params;
     const { period = '20', multiplier = '2', mock } = req.query;
 
-    // Determine if we should use mock data
-    const useMock = mock === 'true' || (!hasApiTokens && mock !== 'false');
+    // Determine if we should use mock data (default to mock even with API tokens)
+    const useMock = mock !== 'false'; // Only use real API if explicitly requested with mock=false
 
     // Generate mock Bollinger Bands data
     const basePrice = 100 + Math.random() * 100; // Random price between 100-200
