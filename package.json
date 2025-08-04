@@ -8,9 +8,13 @@
   "license": "ISC",
   "main": "lib/src/index.js",
   "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
     "axios": "^0.21.1",
     "commander": "^6.2.1",
+    "cors": "^2.8.5",
     "dotenv": "^8.2.0",
+    "express": "^5.1.0",
     "lodash": "^4.17.20",
     "ts-node": "^9.1.1"
   },
@@ -31,6 +35,8 @@
   "scripts": {
     "test": "jest",
     "build": "tsc --build ./tsconfig.json",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "server": "npm run build && node lib/src/server.js",
+    "dev-server": "ts-node src/server.ts"
   }
 }

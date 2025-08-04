@@ -1,6 +1,19 @@
 # Trading Strategy API
 
-A command-line trading analysis tool that can be called from other projects for technical indicator calculations and pattern recognition.
+A comprehensive trading analysis system with both command-line interface and HTTP API for technical indicator calculations and pattern recognition.
+
+## 🚀 Quick Start
+
+### Command Line Interface
+```bash
+npm start rsi AAPL                    # Command line analysis
+```
+
+### HTTP API Server
+```bash
+npm run dev-server                    # Start API server on port 3000
+curl http://localhost:3000/api/rsi/AAPL/quick  # HTTP API call
+```
 
 ## Available Indicators & Patterns
 
@@ -50,11 +63,24 @@ npm start macd AAPL                   # MACD analysis
 
 ## API Integration
 
-### From Node.js
+### HTTP API (Recommended)
+```javascript
+const axios = require('axios');
+
+// Get RSI data via HTTP
+const response = await axios.get('http://localhost:3000/api/rsi/AAPL/quick');
+console.log(`AAPL RSI: ${response.data.rsi} - Signal: ${response.data.signal}`);
+
+// Get Bollinger Bands data
+const bb = await axios.get('http://localhost:3000/api/bollinger/AAPL/quick');
+console.log(`Price: ${bb.data.price}, %B: ${bb.data.percentB}%`);
+```
+
+### Command Line Interface
 ```javascript
 const { exec } = require('child_process');
 
-// Get RSI data
+// Get RSI data via CLI
 exec('npm start quick-rsi AAPL', (error, stdout) => {
   const rsi = JSON.parse(stdout);
   console.log(`AAPL RSI: ${rsi.rsi} - Signal: ${rsi.signal}`);
@@ -73,11 +99,28 @@ rsi_data = json.loads(result.stdout)
 print(f"AAPL RSI: {rsi_data['rsi']} - Signal: {rsi_data['signal']}")
 ```
 
-### From Any Language
+### HTTP API Endpoints
 ```bash
-# HTTP-like usage via command line
-curl -X GET "http://localhost:3000/api/rsi/AAPL" 
-# Equivalent: npm start quick-rsi AAPL
+# Start the API server
+npm run dev-server
+
+# RSI endpoints
+GET http://localhost:3000/api/rsi/AAPL
+GET http://localhost:3000/api/rsi/AAPL/quick
+GET http://localhost:3000/api/rsi/AAPL/multi
+
+# Bollinger Bands endpoints
+GET http://localhost:3000/api/bollinger/AAPL
+GET http://localhost:3000/api/bollinger/AAPL/quick
+GET http://localhost:3000/api/bollinger/AAPL/squeeze
+
+# MFI endpoints
+GET http://localhost:3000/api/mfi/AAPL
+GET http://localhost:3000/api/mfi/AAPL/quick
+
+# IMI endpoints
+GET http://localhost:3000/api/imi/AAPL
+GET http://localhost:3000/api/imi/AAPL/quick
 ```
 
 ## Test Data
