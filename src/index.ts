@@ -15,6 +15,8 @@ import { rsiAnalysis, quickRSI } from './commands/rsiAnalysis';
 import { bollingerBandsAnalysis, quickBollingerBands } from './commands/bollingerBandsAnalysis';
 import { mfiAnalysis, quickMFI } from './commands/mfiAnalysis';
 import { imiAnalysis, quickIMI } from './commands/imiAnalysis';
+import { displayEMAAnalysis, displayMultiTimeframeEMA, quickEMA } from './commands/emaAnalysis';
+import { displayATRAnalysis, displayPositionSizing, quickATR } from './commands/atrAnalysis';
 const program = new Command();
 
 program.version(settings.version).description('gqlpages tools');
@@ -122,7 +124,8 @@ program
   .option('--oversold <number>', 'custom oversold level (default: 30)', '30')
   .option('--overbought <number>', 'custom overbought level (default: 70)', '70')
   .option('--test-data <filename>', 'use specific test data file')
-  .option('--mock', 'use mock data for demonstration', false)
+  .option('--mock', 'use mock data for demonstration (default: true)', true)
+  .option('--live', 'use live API data instead of mock data', false)
   .action(async (symbol, cmdObj) => {
     const period = parseInt(cmdObj.period);
     const periods = cmdObj.periods.split(',').map((p: string) => parseInt(p.trim()));
@@ -139,7 +142,7 @@ program
       periods,
       customLevels,
       testData: cmdObj.testData,
-      mock: cmdObj.mock
+      mock: cmdObj.testData ? false : (cmdObj.live ? false : cmdObj.mock)  // Use test data if specified, otherwise mock unless --live
     });
   });
 
@@ -165,7 +168,8 @@ program
   .option('-m, --multiplier <number>', 'standard deviation multiplier (default: 2)', '2')
   .option('-s, --squeeze', 'include squeeze analysis', false)
   .option('--test-data <filename>', 'use specific test data file')
-  .option('--mock', 'use mock data for demonstration', false)
+  .option('--mock', 'use mock data for demonstration (default: true)', true)
+  .option('--live', 'use live API data instead of mock data', false)
   .action(async (symbol, cmdObj) => {
     const period = parseInt(cmdObj.period);
     const multiplier = parseFloat(cmdObj.multiplier);
@@ -175,7 +179,7 @@ program
       multiplier,
       squeeze: cmdObj.squeeze,
       testData: cmdObj.testData,
-      mock: cmdObj.mock
+      mock: cmdObj.testData ? false : (cmdObj.live ? false : cmdObj.mock)  // Use test data if specified, otherwise mock unless --live
     });
   });
 
@@ -203,7 +207,8 @@ program
   .option('--oversold <number>', 'oversold threshold (default: 20)', '20')
   .option('--overbought <number>', 'overbought threshold (default: 80)', '80')
   .option('--test-data <filename>', 'use specific test data file')
-  .option('--mock', 'use mock data for demonstration', false)
+  .option('--mock', 'use mock data for demonstration (default: true)', true)
+  .option('--live', 'use live API data instead of mock data', false)
   .action(async (symbol, cmdObj) => {
     const period = parseInt(cmdObj.period);
     const customLevels = {
@@ -215,7 +220,7 @@ program
       period,
       customLevels,
       testData: cmdObj.testData,
-      mock: cmdObj.mock
+      mock: cmdObj.testData ? false : (cmdObj.live ? false : cmdObj.mock)  // Use test data if specified, otherwise mock unless --live
     });
   });
 
@@ -241,7 +246,8 @@ program
   .option('--oversold <number>', 'oversold threshold (default: 30)', '30')
   .option('--overbought <number>', 'overbought threshold (default: 70)', '70')
   .option('--test-data <filename>', 'use specific test data file')
-  .option('--mock', 'use mock data for demonstration', false)
+  .option('--mock', 'use mock data for demonstration (default: true)', true)
+  .option('--live', 'use live API data instead of mock data', false)
   .action(async (symbol, cmdObj) => {
     const period = parseInt(cmdObj.period);
     const customLevels = {
@@ -253,7 +259,7 @@ program
       period,
       customLevels,
       testData: cmdObj.testData,
-      mock: cmdObj.mock
+      mock: cmdObj.testData ? false : (cmdObj.live ? false : cmdObj.mock)  // Use test data if specified, otherwise mock unless --live
     });
   });
 
@@ -265,6 +271,83 @@ program
     const period = parseInt(cmdObj.period);
     try {
       const result = await quickIMI(symbol, period);
+      console.log(JSON.stringify(result, null, 2));
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('ema <symbol>')
+  .description('calculate and analyze Exponential Moving Average for a stock')
+  .option('-p, --period <number>', 'EMA period (default: 12)', '12')
+  .option('-t, --type <type>', 'price type (close, high, low, open, median)', 'close')
+  .option('-m, --multi', 'multi-timeframe analysis', false)
+  .option('--periods <numbers>', 'comma-separated periods for multi-timeframe (default: 12,26,50)', '12,26,50')
+  .option('--test-data <filename>', 'use specific test data file')
+  .option('--mock', 'use mock data for demonstration (default: true)', true)
+  .option('--live', 'use live API data instead of mock data', false)
+  .action(async (symbol, cmdObj) => {
+    const period = parseInt(cmdObj.period);
+    const priceType = cmdObj.type as 'close' | 'high' | 'low' | 'open' | 'median';
+
+    const useMockData = cmdObj.live ? false : cmdObj.mock;  // Use mock unless --live is specified
+
+    if (cmdObj.multi) {
+      const periods = cmdObj.periods.split(',').map((p: string) => parseInt(p.trim()));
+      await displayMultiTimeframeEMA(symbol, periods, useMockData);
+    } else {
+      await displayEMAAnalysis(symbol, period, priceType, useMockData);
+    }
+  });
+
+program
+  .command('quick-ema <symbol>')
+  .description('get quick Exponential Moving Average value and signal (API endpoint)')
+  .option('-p, --period <number>', 'EMA period (default: 12)', '12')
+  .action(async (symbol, cmdObj) => {
+    const period = parseInt(cmdObj.period);
+    try {
+      const result = await quickEMA(symbol, period);
+      console.log(JSON.stringify(result, null, 2));
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('atr <symbol>')
+  .description('calculate and analyze Average True Range for volatility assessment')
+  .option('-p, --period <number>', 'ATR period (default: 14)', '14')
+  .option('--position-sizing', 'show position sizing analysis', false)
+  .option('--account <amount>', 'account size for position sizing (default: 10000)', '10000')
+  .option('--risk <percentage>', 'risk percentage per trade (default: 2)', '2')
+  .option('--test-data <filename>', 'use specific test data file')
+  .option('--mock', 'use mock data for demonstration (default: true)', true)
+  .option('--live', 'use live API data instead of mock data', false)
+  .action(async (symbol, cmdObj) => {
+    const period = parseInt(cmdObj.period);
+    const useMockData = cmdObj.live ? false : cmdObj.mock;  // Use mock unless --live is specified
+
+    if (cmdObj.positionSizing) {
+      const accountSize = parseFloat(cmdObj.account);
+      const riskPercent = parseFloat(cmdObj.risk) / 100;
+      await displayPositionSizing(symbol, accountSize, riskPercent, period);
+    } else {
+      await displayATRAnalysis(symbol, period, useMockData);
+    }
+  });
+
+program
+  .command('quick-atr <symbol>')
+  .description('get quick Average True Range value and volatility assessment (API endpoint)')
+  .option('-p, --period <number>', 'ATR period (default: 14)', '14')
+  .action(async (symbol, cmdObj) => {
+    const period = parseInt(cmdObj.period);
+    try {
+      const result = await quickATR(symbol, period);
       console.log(JSON.stringify(result, null, 2));
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');

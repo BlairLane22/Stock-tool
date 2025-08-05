@@ -115,7 +115,7 @@ export async function mfiAnalysis(
     displayMFIChart(candles, analysis, period);
     
     // Educational information
-    displayMFIEducation();
+    // displayMFIEducation();
     
     return analysis;
 

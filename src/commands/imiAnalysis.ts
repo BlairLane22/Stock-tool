@@ -118,7 +118,7 @@ export async function imiAnalysis(
     displayIntradayAnalysis(candles, analysis, period);
     
     // Educational information
-    displayIMIEducation();
+    // displayIMIEducation();
     
     return analysis;
 

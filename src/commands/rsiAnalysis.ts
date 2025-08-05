@@ -125,7 +125,7 @@ export async function rsiAnalysis(
     displayRSIChart(candles, period);
     
     // Educational information
-    displayRSIEducation();
+    // displayRSIEducation();
     
     return results;
 

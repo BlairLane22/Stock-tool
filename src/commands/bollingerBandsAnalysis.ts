@@ -127,7 +127,7 @@ export async function bollingerBandsAnalysis(
     displayBollingerBandsChart(candles, analysis, period);
     
     // Educational information
-    displayBollingerBandsEducation();
+    // displayBollingerBandsEducation();
     
     return analysis;
 
