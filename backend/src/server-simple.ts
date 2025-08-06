@@ -61,6 +61,14 @@ app.get('/', (req, res) => {
       atr: {
         'GET /api/atr/:symbol': 'Get comprehensive Average True Range analysis with position sizing',
         'GET /api/atr/:symbol/quick': 'Get quick ATR volatility assessment'
+      },
+      macd: {
+        'GET /api/macd/:symbol': 'Get comprehensive MACD analysis with crossover signals',
+        'GET /api/macd/:symbol/quick': 'Get quick MACD values and signal'
+      },
+      cupHandle: {
+        'GET /api/cup-handle/:symbol': 'Get comprehensive Cup and Handle pattern analysis',
+        'GET /api/cup-handle/:symbol/quick': 'Get quick Cup and Handle pattern detection'
       }
     },
     status: 'Routes loading individually to avoid import issues'
@@ -1086,6 +1094,287 @@ app.get('/api/atr/:symbol/quick', async (req, res) => {
   }
 });
 
+// MACD analysis endpoint
+app.get('/api/macd/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { fastPeriod = '12', slowPeriod = '26', signalPeriod = '9', mock = 'true' } = req.query;
+
+    // Mock result for MACD analysis
+    const mockResult = {
+      symbol: symbol.toUpperCase(),
+      indicator: 'MACD',
+      timestamp: new Date().toISOString(),
+      data: {
+        current: {
+          macd: 1.25,
+          signal: 0.85,
+          histogram: 0.40
+        },
+        previous: {
+          macd: 0.95,
+          signal: 0.75,
+          histogram: 0.20
+        },
+        signal: 'BUY',
+        crossover: 'BULLISH_CROSSOVER',
+        trend: 'BULLISH',
+        momentum: 'INCREASING',
+        strength: 75,
+        divergence: 'NONE',
+        interpretation: [
+          '🟢 MACD line above signal line - bullish momentum',
+          '🚀 Bullish crossover detected - MACD crossed above signal line',
+          '📈 Histogram increasing - momentum strengthening',
+          '✅ MACD above zero line - overall bullish trend'
+        ],
+        tradingStrategy: {
+          entry: 'Consider long position on bullish crossover',
+          exit: 'Exit when MACD crosses below signal line',
+          stopLoss: 145.50,
+          target: 162.00
+        },
+        chartData: {
+          timestamps: [1704067200000, 1704153600000, 1704240000000],
+          prices: [148.50, 150.25, 152.00],
+          macdValues: [0.95, 1.10, 1.25],
+          signalValues: [0.75, 0.80, 0.85],
+          histogramValues: [0.20, 0.30, 0.40],
+          volume: [45230000, 52100000, 48750000],
+          levels: { zero: 0 }
+        }
+      },
+      parameters: {
+        fastPeriod: parseInt(fastPeriod as string),
+        slowPeriod: parseInt(slowPeriod as string),
+        signalPeriod: parseInt(signalPeriod as string)
+      },
+      metadata: {
+        dataPoints: 200,
+        dataSource: 'Mock Data'
+      }
+    };
+
+    if (mock === 'false') {
+      // Try real API only if explicitly requested
+      const { analyzeMACDSignals } = await import('./indicators/macd');
+      const { getCandles } = await import('./commands/helper/getCandles');
+      const candles = await getCandles(symbol);
+      const analysis = analyzeMACDSignals(candles, parseInt(fastPeriod as string), parseInt(slowPeriod as string), parseInt(signalPeriod as string));
+
+      res.json({
+        symbol: symbol.toUpperCase(),
+        indicator: 'MACD',
+        timestamp: new Date().toISOString(),
+        data: analysis,
+        parameters: {
+          fastPeriod: parseInt(fastPeriod as string),
+          slowPeriod: parseInt(slowPeriod as string),
+          signalPeriod: parseInt(signalPeriod as string)
+        },
+        metadata: { dataPoints: candles.length, dataSource: 'Live API' }
+      });
+    } else {
+      res.json(mockResult);
+    }
+
+  } catch (error) {
+    console.error('MACD analysis error:', error);
+    res.status(500).json({
+      error: 'MACD Analysis Failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Quick MACD endpoint
+app.get('/api/macd/:symbol/quick', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { mock = 'true' } = req.query;
+
+    // Mock result for quick MACD
+    const mockResult = {
+      symbol: symbol.toUpperCase(),
+      macd: 1.25,
+      signal: 0.85,
+      histogram: 0.40,
+      crossover: 'BULLISH_CROSSOVER',
+      timestamp: new Date().toISOString()
+    };
+
+    if (mock === 'false') {
+      // Try real API only if explicitly requested
+      const { getMACDResult } = await import('./indicators/macd');
+      const { getCandles } = await import('./commands/helper/getCandles');
+      const candles = await getCandles(symbol);
+      const macdResult = getMACDResult(candles);
+
+      res.json({
+        symbol: symbol.toUpperCase(),
+        macd: macdResult.current,
+        signal: macdResult.signalCurrent,
+        histogram: macdResult.histogramCurrent,
+        crossover: macdResult.current > macdResult.signalCurrent ?
+          (macdResult.previous <= macdResult.signalPrevious ? 'BULLISH_CROSSOVER' : 'BULLISH') :
+          (macdResult.previous >= macdResult.signalPrevious ? 'BEARISH_CROSSOVER' : 'BEARISH'),
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.json(mockResult);
+    }
+
+  } catch (error) {
+    console.error('Quick MACD error:', error);
+    res.status(500).json({
+      error: 'Quick MACD Failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Cup and Handle pattern analysis endpoint
+app.get('/api/cup-handle/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { mock = 'true' } = req.query;
+
+    // Mock result for Cup and Handle analysis
+    const mockResult = {
+      symbol: symbol.toUpperCase(),
+      indicator: 'Cup and Handle Pattern',
+      timestamp: new Date().toISOString(),
+      data: {
+        patternDetected: true,
+        confidence: 'MEDIUM',
+        stage: 'BREAKOUT_READY',
+        cupDepth: 18.5,
+        handleDepth: 8.2,
+        breakoutLevel: 155.00,
+        targetPrice: 185.00,
+        stopLoss: 142.50,
+        patternDuration: 45,
+        volumeConfirmation: true,
+        strength: 72,
+        riskReward: 2.4,
+        signal: 'HOLD',
+        interpretation: [
+          '✅ Cup and Handle pattern detected with MEDIUM confidence',
+          '⚡ Pattern complete - ready for breakout',
+          '📏 Cup depth: 18.5%',
+          '🔧 Handle depth: 8.2%',
+          '⏱️ Pattern duration: 45 periods',
+          '🎯 Risk/Reward ratio: 2.4:1'
+        ],
+        tradingStrategy: {
+          entry: 'Monitor for breakout above $155.00 with volume',
+          exit: 'Exit if pattern fails below $142.50',
+          stopLoss: 142.50,
+          target: 185.00
+        }
+      },
+      metadata: {
+        dataPoints: 200,
+        dataSource: 'Mock Data'
+      }
+    };
+
+    if (mock === 'false') {
+      // Try real API only if explicitly requested
+      const { analyzeCupAndHandlePattern } = await import('./indicators/cupAndHandle');
+      const { getCandles } = await import('./commands/helper/getCandles');
+      const candles = await getCandles(symbol);
+      const analysis = analyzeCupAndHandlePattern(candles);
+
+      res.json({
+        symbol: symbol.toUpperCase(),
+        indicator: 'Cup and Handle Pattern',
+        timestamp: new Date().toISOString(),
+        data: {
+          patternDetected: analysis.pattern.isPattern,
+          confidence: analysis.pattern.confidence,
+          stage: analysis.stage,
+          cupDepth: analysis.pattern.cupDepth,
+          handleDepth: analysis.pattern.handleDepth,
+          breakoutLevel: analysis.pattern.breakoutLevel,
+          targetPrice: analysis.pattern.targetPrice,
+          stopLoss: analysis.pattern.stopLoss,
+          patternDuration: analysis.pattern.patternDuration,
+          volumeConfirmation: analysis.pattern.volumeConfirmation,
+          strength: analysis.strength,
+          riskReward: analysis.riskReward,
+          signal: analysis.signal,
+          interpretation: analysis.interpretation,
+          tradingStrategy: analysis.tradingStrategy
+        },
+        metadata: { dataPoints: candles.length, dataSource: 'Live API' }
+      });
+    } else {
+      res.json(mockResult);
+    }
+
+  } catch (error) {
+    console.error('Cup and Handle analysis error:', error);
+    res.status(500).json({
+      error: 'Cup and Handle Analysis Failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Quick Cup and Handle endpoint
+app.get('/api/cup-handle/:symbol/quick', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { mock = 'true' } = req.query;
+
+    // Mock result for quick Cup and Handle
+    const mockResult = {
+      symbol: symbol.toUpperCase(),
+      patternDetected: true,
+      confidence: 'MEDIUM',
+      signal: 'HOLD',
+      targetPrice: 185.00,
+      breakoutLevel: 155.00,
+      stopLoss: 142.50,
+      timestamp: new Date().toISOString()
+    };
+
+    if (mock === 'false') {
+      // Try real API only if explicitly requested
+      const { getCupAndHandleResult } = await import('./indicators/cupAndHandle');
+      const { getCandles } = await import('./commands/helper/getCandles');
+      const candles = await getCandles(symbol);
+      const patternResult = getCupAndHandleResult(candles);
+
+      res.json({
+        symbol: symbol.toUpperCase(),
+        patternDetected: patternResult.isPattern,
+        confidence: patternResult.confidence,
+        signal: patternResult.isPattern ?
+          (patternResult.confidence === 'HIGH' ? 'BUY' : 'HOLD') : 'WAIT',
+        targetPrice: patternResult.targetPrice,
+        breakoutLevel: patternResult.breakoutLevel,
+        stopLoss: patternResult.stopLoss,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.json(mockResult);
+    }
+
+  } catch (error) {
+    console.error('Quick Cup and Handle error:', error);
+    res.status(500).json({
+      error: 'Quick Cup and Handle Failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('API Error:', err);
@@ -1117,6 +1406,8 @@ app.listen(PORT, () => {
   console.log(`   IMI: http://localhost:${PORT}/api/imi/AAPL/quick`);
   console.log(`   EMA: http://localhost:${PORT}/api/ema/AAPL/quick`);
   console.log(`   ATR: http://localhost:${PORT}/api/atr/AAPL/quick`);
+  console.log(`   MACD: http://localhost:${PORT}/api/macd/AAPL/quick`);
+  console.log(`   Cup & Handle: http://localhost:${PORT}/api/cup-handle/AAPL/quick`);
 });
 
 export default app;

@@ -4,6 +4,7 @@
   "description": "Strong cup and handle pattern with 22% cup depth and 7% handle depth. Pattern duration: 45 periods (32 cup + 13 handle). High confidence pattern with proper U-shape and volume confirmation.",
   "expectedPattern": {
     "type": "cup-and-handle",
+    "shouldDetect": true,
     "confidence": "HIGH",
     "cupStart": 0,
     "cupBottom": 16,

@@ -77,11 +77,12 @@ program
   .option('--fast <period>', 'fast EMA period', '12')
   .option('--slow <period>', 'slow EMA period', '26')
   .option('--signal <period>', 'signal line EMA period', '9')
+  .option('--test-data <filename>', 'use specific test data file (without .json extension)')
   .action(async (symbol, cmdObj) => {
     const fast = parseInt(cmdObj.fast);
     const slow = parseInt(cmdObj.slow);
     const signal = parseInt(cmdObj.signal);
-    await macd(symbol, fast, slow, signal);
+    await macd(symbol, fast, slow, signal, cmdObj.testData);
   });
 
 program
@@ -349,6 +350,69 @@ program
     try {
       const result = await quickATR(symbol, period);
       console.log(JSON.stringify(result, null, 2));
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('quick-macd <symbol>')
+  .description('get quick MACD values and signal (API endpoint)')
+  .option('--fast <period>', 'fast EMA period (default: 12)', '12')
+  .option('--slow <period>', 'slow EMA period (default: 26)', '26')
+  .option('--signal <period>', 'signal line EMA period (default: 9)', '9')
+  .action(async (symbol, cmdObj) => {
+    const fastPeriod = parseInt(cmdObj.fast);
+    const slowPeriod = parseInt(cmdObj.slow);
+    const signalPeriod = parseInt(cmdObj.signal);
+    try {
+      const { getMACDResult } = await import('./indicators/macd');
+      const { getCandles } = await import('./commands/helper/getCandles');
+      const candles = await getCandles(symbol);
+      const result = getMACDResult(candles, fastPeriod, slowPeriod, signalPeriod);
+
+      const quickResult = {
+        symbol: symbol.toUpperCase(),
+        macd: result.current,
+        signal: result.signalCurrent,
+        histogram: result.histogramCurrent,
+        crossover: result.current > result.signalCurrent ?
+          (result.previous <= result.signalPrevious ? 'BULLISH_CROSSOVER' : 'BULLISH') :
+          (result.previous >= result.signalPrevious ? 'BEARISH_CROSSOVER' : 'BEARISH'),
+        timestamp: new Date().toISOString()
+      };
+
+      console.log(JSON.stringify(quickResult, null, 2));
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('quick-cup-handle <symbol>')
+  .description('get quick Cup and Handle pattern detection (API endpoint)')
+  .action(async (symbol, cmdObj) => {
+    try {
+      const { getCupAndHandleResult } = await import('./indicators/cupAndHandle');
+      const { getCandles } = await import('./commands/helper/getCandles');
+      const candles = await getCandles(symbol);
+      const result = getCupAndHandleResult(candles);
+
+      const quickResult = {
+        symbol: symbol.toUpperCase(),
+        patternDetected: result.isPattern,
+        confidence: result.confidence,
+        signal: result.isPattern ?
+          (result.confidence === 'HIGH' ? 'BUY' : 'HOLD') : 'WAIT',
+        targetPrice: result.targetPrice,
+        breakoutLevel: result.breakoutLevel,
+        stopLoss: result.stopLoss,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log(JSON.stringify(quickResult, null, 2));
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
       process.exit(1);

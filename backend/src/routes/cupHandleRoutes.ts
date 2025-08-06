@@ -1,6 +1,7 @@
 import express from 'express';
 import { getCandles } from '../commands/helper/getCandles';
 import { loadTestData } from '../util/testDataLoader';
+import { analyzeCupAndHandlePattern, getCupAndHandleResult, generateMockCupAndHandleData } from '../indicators/cupAndHandle';
 
 const router = express.Router();
 
@@ -27,25 +28,16 @@ router.get('/:symbol', async (req, res) => {
       const testDataObj = loadTestData(testData as string);
       candles = testDataObj.candles;
     } else if (options.mock) {
-      candles = generateMockCandles(symbol, 200);
+      candles = generateMockCupAndHandleData(100, 20, 60);
     } else {
       candles = await getCandles(symbol);
+      if (candles.length < 40) {
+        candles = generateMockCupAndHandleData(100, 20, 60);
+      }
     }
 
-    // Placeholder analysis - Cup and Handle pattern detection would go here
-    const analysis = {
-      patternDetected: false,
-      confidence: 0,
-      stage: 'NONE',
-      cupDepth: 0,
-      handleDepth: 0,
-      breakoutLevel: 0,
-      targetPrice: 0,
-      stopLoss: 0,
-      timeframe: 0,
-      signal: 'HOLD',
-      interpretation: ['Cup and Handle analysis not yet implemented']
-    };
+    // Perform Cup and Handle pattern analysis
+    const analysis = analyzeCupAndHandlePattern(candles);
 
     // Extract the key data from the analysis result
     const responseData = {
@@ -53,17 +45,30 @@ router.get('/:symbol', async (req, res) => {
       indicator: 'Cup and Handle Pattern',
       timestamp: new Date().toISOString(),
       data: {
-        patternDetected: analysis?.patternDetected || false,
-        confidence: analysis?.confidence || 0,
-        stage: analysis?.stage || 'NONE',
-        cupDepth: analysis?.cupDepth || 0,
-        handleDepth: analysis?.handleDepth || 0,
-        breakoutLevel: analysis?.breakoutLevel || 0,
-        targetPrice: analysis?.targetPrice || 0,
-        stopLoss: analysis?.stopLoss || 0,
-        timeframe: analysis?.timeframe || 0,
-        signal: analysis?.signal || 'HOLD',
-        interpretation: analysis?.interpretation || []
+        patternDetected: analysis.pattern.isPattern,
+        confidence: analysis.pattern.confidence,
+        stage: analysis.stage,
+        cupDepth: analysis.pattern.cupDepth,
+        handleDepth: analysis.pattern.handleDepth,
+        breakoutLevel: analysis.pattern.breakoutLevel,
+        targetPrice: analysis.pattern.targetPrice,
+        stopLoss: analysis.pattern.stopLoss,
+        patternDuration: analysis.pattern.patternDuration,
+        volumeConfirmation: analysis.pattern.volumeConfirmation,
+        strength: analysis.strength,
+        riskReward: analysis.riskReward,
+        signal: analysis.signal,
+        interpretation: analysis.interpretation,
+        tradingStrategy: analysis.tradingStrategy,
+        chartData: analysis.chartData,
+        patternDetails: {
+          cupStart: analysis.pattern.cupStart,
+          cupBottom: analysis.pattern.cupBottom,
+          cupEnd: analysis.pattern.cupEnd,
+          handleStart: analysis.pattern.handleStart,
+          handleEnd: analysis.pattern.handleEnd,
+          reasons: analysis.pattern.reasons
+        }
       },
       metadata: {
         dataPoints: candles.length,
@@ -95,20 +100,34 @@ router.get('/:symbol/quick', async (req, res) => {
       testData: testData as string
     };
 
-    // Placeholder analysis
-    const analysis = {
-      patternDetected: false,
-      confidence: 0,
-      signal: 'HOLD',
-      targetPrice: 0
-    };
+    // Get candle data for quick analysis
+    let candles: any;
+    if (testData) {
+      const testDataObj = loadTestData(testData as string);
+      candles = testDataObj.candles;
+    } else {
+      try {
+        candles = await getCandles(symbol);
+        if (candles.length < 40) {
+          candles = generateMockCupAndHandleData(100, 20, 60);
+        }
+      } catch (error) {
+        candles = generateMockCupAndHandleData(100, 20, 60);
+      }
+    }
+
+    // Perform quick Cup and Handle analysis
+    const patternResult = getCupAndHandleResult(candles);
 
     res.json({
       symbol: symbol.toUpperCase(),
-      patternDetected: analysis?.patternDetected || false,
-      confidence: analysis?.confidence || 0,
-      signal: analysis?.signal || 'HOLD',
-      targetPrice: analysis?.targetPrice || 0,
+      patternDetected: patternResult.isPattern,
+      confidence: patternResult.confidence,
+      signal: patternResult.isPattern ?
+        (patternResult.confidence === 'HIGH' ? 'BUY' : 'HOLD') : 'WAIT',
+      targetPrice: patternResult.targetPrice,
+      breakoutLevel: patternResult.breakoutLevel,
+      stopLoss: patternResult.stopLoss,
       timestamp: new Date().toISOString()
     });
 
@@ -123,51 +142,10 @@ router.get('/:symbol/quick', async (req, res) => {
 
 /**
  * Generate mock candle data for testing with cup and handle pattern potential
+ * This function is kept for backward compatibility but delegates to the indicator's mock data generator
  */
 function generateMockCandles(_symbol: string, count: number) {
-  const candles: any[] = [];
-  let price = 100 + Math.random() * 100;
-
-  for (let i = 0; i < count; i++) {
-    let dailyChange;
-
-    // Create a potential cup and handle pattern in the data
-    if (i < count * 0.3) {
-      // Initial uptrend
-      dailyChange = (Math.random() - 0.3) * 0.03;
-    } else if (i < count * 0.6) {
-      // Cup formation (decline then recovery)
-      const cupProgress = (i - count * 0.3) / (count * 0.3);
-      const cupFactor = Math.sin(cupProgress * Math.PI) * -0.02;
-      dailyChange = (Math.random() - 0.5) * 0.02 + cupFactor;
-    } else if (i < count * 0.8) {
-      // Handle formation (slight decline)
-      dailyChange = (Math.random() - 0.6) * 0.015;
-    } else {
-      // Potential breakout
-      dailyChange = (Math.random() - 0.2) * 0.025;
-    }
-
-    price = price * (1 + dailyChange);
-
-    const volatility = 0.02;
-    const open: number = i === 0 ? price : candles[i - 1].close;
-    const high = Math.max(open, price) * (1 + Math.random() * volatility);
-    const low = Math.min(open, price) * (1 - Math.random() * volatility);
-    const close = price;
-    const volume = Math.floor(Math.random() * 2000000 + 500000);
-    
-    candles.push({
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(high.toFixed(2)),
-      low: parseFloat(low.toFixed(2)),
-      close: parseFloat(close.toFixed(2)),
-      volume,
-      timeStamp: Date.now() / 1000 - (count - i) * 24 * 60 * 60
-    });
-  }
-  
-  return candles;
+  return generateMockCupAndHandleData(100, 20, count);
 }
 
 export default router;

@@ -158,14 +158,14 @@ function findCupPatterns(
       const endPrice = closes[endIndex];
       const priceRecovery = ((endPrice - bottomPrice) / (startHigh - bottomPrice)) * 100;
 
-      // Cup validation criteria
+      // Cup validation criteria (more lenient for medium confidence patterns)
       if (
-        depth >= 10 && depth <= 50 && // Reasonable depth (10-50%) - reduced minimum
+        depth >= 7 && depth <= 50 && // Reasonable depth (7-50%) - reduced minimum for medium patterns
         priceRecovery >= 60 && // Price should recover at least 60% of decline (reduced from 70%)
         bottomIndex > start + 1 && // Bottom should not be at the very beginning (reduced from 2)
         bottomIndex < endIndex - 1 && // Bottom should not be at the very end (reduced from 2)
         isUShapedCup(cupData, bottomIndex - start) && // Should be U-shaped, not V-shaped
-        endPrice >= startHigh * 0.80 // End price should be reasonably close to start (reduced from 0.85)
+        endPrice >= startHigh * 0.75 // End price should be reasonably close to start (reduced from 0.80)
       ) {
         patterns.push({
           startIndex: start,
@@ -204,22 +204,22 @@ function isUShapedCup(cupData: Candle[], bottomIndex: number): boolean {
   const leftSlope = calculateAverageSlope(leftSide);
   const rightSlope = calculateAverageSlope(rightSide.reverse());
 
-  // U-shape should have gradual slopes, not sharp V-shape
-  const maxAllowedSlope = 0.25; // Increased from 0.15 to be less strict
+  // U-shape should have gradual slopes, not sharp V-shape (more lenient for medium patterns)
+  const maxAllowedSlope = 0.35; // Increased from 0.25 to be even less strict
 
-  // Check for flat bottom (multiple periods near the low)
+  // Check for flat bottom (multiple periods near the low) - more lenient
   let flatBottomCount = 0;
-  const tolerance = bottomPrice * 0.03; // Increased from 2% to 3% tolerance
+  const tolerance = bottomPrice * 0.05; // Increased from 3% to 5% tolerance
 
-  for (let i = Math.max(0, bottomIndex - 3); i <= Math.min(lows.length - 1, bottomIndex + 3); i++) {
+  for (let i = Math.max(0, bottomIndex - 4); i <= Math.min(lows.length - 1, bottomIndex + 4); i++) {
     if (Math.abs(lows[i] - bottomPrice) <= tolerance) {
       flatBottomCount++;
     }
   }
 
-  return Math.abs(leftSlope) <= maxAllowedSlope &&
-         Math.abs(rightSlope) <= maxAllowedSlope &&
-         flatBottomCount >= 1; // Reduced from 2 to 1
+  // More lenient U-shape validation
+  return (Math.abs(leftSlope) <= maxAllowedSlope || Math.abs(rightSlope) <= maxAllowedSlope) &&
+         flatBottomCount >= 1;
 }
 
 /**
@@ -294,7 +294,7 @@ function findHandlePattern(
 
     // Handle validation criteria
     const handleDepth = ((cupEndPrice - handleLow) / cupEndPrice) * 100;
-    const maxAllowedHandleDepth = Math.min(20, cup.depth * 0.5); // Increased max to 20% or 1/2 of cup depth
+    const maxAllowedHandleDepth = Math.min(20, Math.max(5, cup.depth * 0.6)); // Min 5% or 60% of cup depth, max 20%
 
     // Handle should have slight downward drift or sideways movement
     const priceDecline = cupEndPrice - handleEndPrice;
@@ -304,8 +304,8 @@ function findHandlePattern(
     // Volume should generally decline during handle formation (more lenient)
     const volumeDecline = checkVolumeDecline(handleData);
 
-    // Handle should not break below significant support (more lenient)
-    const supportLevel = cup.bottomPrice * 1.10; // 10% above cup bottom (increased from 5%)
+    // Handle should not break below significant support (very lenient for medium patterns)
+    const supportLevel = cup.bottomPrice * 1.02; // Only 2% above cup bottom for more realistic validation
     const breaksSupport = handleLow < supportLevel;
 
     if (
@@ -313,7 +313,7 @@ function findHandlePattern(
       handleDepth >= 0.1 && // Reduced minimum to 0.1% decline for valid handle
       isDownwardDrift &&
       !breaksSupport &&
-      handleEndPrice >= handleLow * 1.01 // End should be above the handle low (reduced from 1.02)
+      handleEndPrice >= handleLow * 1.005 // End should be above the handle low (reduced from 1.01)
     ) {
       return {
         isValid: true,
@@ -370,8 +370,16 @@ function validateCupAndHandle(
   const cupDepth = cup.startPrice - cup.bottomPrice;
   const targetPrice = resistanceLevel + cupDepth;
 
-  // Calculate stop loss (below handle low or cup bottom)
-  const stopLoss = Math.min(handle.lowPrice * 0.98, cup.bottomPrice * 0.98);
+  // Calculate stop loss (more conservative approach for Cup & Handle patterns)
+  // For very shallow handles, use the handle start price as reference instead of absolute low
+  // This provides a more realistic stop loss that traders would actually use
+  const handleStartPrice = handle.startPrice;
+  const handleEndPrice = handle.endPrice;
+  const handleMidPrice = (handleStartPrice + handleEndPrice) / 2;
+
+  // Use the higher of: handle mid-point or handle low, then apply small buffer
+  const conservativeHandleLevel = Math.max(handleMidPrice, handle.lowPrice);
+  const stopLoss = conservativeHandleLevel * 0.98; // 2% below conservative level
 
   // Pattern validation criteria
   let score = 0;

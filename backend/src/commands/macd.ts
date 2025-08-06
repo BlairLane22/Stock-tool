@@ -1,6 +1,7 @@
 import { calculateMACD, analyzeMACDSignals, getMACDRecommendation } from '../chartPatterns/helpers/macd';
 import { getCandles } from './helper/getCandles';
 import { getQuote } from '../util/rest';
+import { loadTestData } from '../util/testDataLoader';
 
 interface Candle {
   open: number;
@@ -55,25 +56,41 @@ export async function macd(
   symbol: string,
   fastPeriod: number = 12,
   slowPeriod: number = 26,
-  signalPeriod: number = 9
+  signalPeriod: number = 9,
+  testData?: string
 ): Promise<void> {
   console.log(`\n=== MACD Analysis for ${symbol.toUpperCase()} ===\n`);
-  
+
   try {
-    // Get current quote
-    const quote = await getQuote(symbol.toUpperCase());
-    
-    // Try to get historical data, fall back to mock data if API fails
     let candles: Candle[];
-    try {
-      candles = await getCandles(symbol);
-      if (candles.length < Math.max(slowPeriod + signalPeriod, 50)) {
-        console.log('⚠️  Insufficient historical data from API, using mock data for demonstration');
-        candles = generateMockCandles(quote.current);
+    let currentPrice: number;
+
+    // Handle test data if provided
+    if (testData) {
+      console.log(`📊 Using test data file: ${testData}.json\n`);
+      const testDataObj = loadTestData(testData);
+      candles = testDataObj.candles;
+      currentPrice = candles[candles.length - 1].close;
+
+      if (testDataObj.description) {
+        console.log(`📋 Test Description: ${testDataObj.description}\n`);
       }
-    } catch (error) {
-      console.log('⚠️  API error fetching historical data, using mock data for demonstration');
-      candles = generateMockCandles(quote.current);
+    } else {
+      // Get current quote
+      const quote = await getQuote(symbol.toUpperCase());
+      currentPrice = quote.current;
+
+      // Try to get historical data, fall back to mock data if API fails
+      try {
+        candles = await getCandles(symbol);
+        if (candles.length < Math.max(slowPeriod + signalPeriod, 50)) {
+          console.log('⚠️  Insufficient historical data from API, using mock data for demonstration');
+          candles = generateMockCandles(currentPrice);
+        }
+      } catch (error) {
+        console.log('⚠️  API error fetching historical data, using mock data for demonstration');
+        candles = generateMockCandles(currentPrice);
+      }
     }
     
     // Calculate MACD
@@ -88,7 +105,7 @@ export async function macd(
     
     // Display current values
     console.log('📊 Current MACD Values:');
-    console.log(`Current Price: $${quote.current.toFixed(2)}`);
+    console.log(`Current Price: $${currentPrice.toFixed(2)}`);
     
     if (macdResult.macd.length > 0) {
       const currentMACD = macdResult.macd[macdResult.macd.length - 1];
@@ -132,17 +149,26 @@ export async function macd(
     console.log('Date\t\tMACD\t\tSignal\t\tHistogram');
     console.log('─'.repeat(60));
     
+    // Calculate the offset for proper alignment
+    const macdStartIndex = candles.length - macdResult.macd.length;
+    const signalStartIndex = candles.length - macdResult.signal.length;
+    const histogramStartIndex = candles.length - macdResult.histogram.length;
+
     for (let i = macdResult.macd.length - historyLength; i < macdResult.macd.length; i++) {
-      const date = new Date((candles[candles.length - macdResult.macd.length + i]?.timeStamp || 0) * 1000);
+      const candleIndex = macdStartIndex + i;
+      const date = new Date((candles[candleIndex]?.timeStamp || 0) * 1000);
       const macdValue = macdResult.macd[i];
-      const signalValue = i < macdResult.signal.length ? macdResult.signal[i - (macdResult.macd.length - macdResult.signal.length)] : 'N/A';
-      const histogramValue = i < macdResult.histogram.length ? macdResult.histogram[i - (macdResult.macd.length - macdResult.histogram.length)] : 'N/A';
-      
-      console.log(
-        `${date.toLocaleDateString()}\t${macdValue.toFixed(4)}\t\t${
-          typeof signalValue === 'number' ? signalValue.toFixed(4) : signalValue
-        }\t\t${typeof histogramValue === 'number' ? histogramValue.toFixed(4) : histogramValue}`
-      );
+
+      // Calculate corresponding indices for signal and histogram
+      const signalIndex = candleIndex - signalStartIndex;
+      const histogramIndex = candleIndex - histogramStartIndex;
+
+      const signalValue = (signalIndex >= 0 && signalIndex < macdResult.signal.length) ?
+        macdResult.signal[signalIndex].toFixed(4) : 'N/A';
+      const histogramValue = (histogramIndex >= 0 && histogramIndex < macdResult.histogram.length) ?
+        macdResult.histogram[histogramIndex].toFixed(4) : 'N/A';
+
+      console.log(`${date.toLocaleDateString()}\t${macdValue.toFixed(4)}\t\t${signalValue}\t\t${histogramValue}`);
     }
     
     // Educational information

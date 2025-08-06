@@ -38,6 +38,8 @@ npm start -- bollinger AAPL --test-data ibm-recent-data --squeeze
 # Use live API data (requires API keys)
 npm start -- rsi AAPL --live
 npm start -- bollinger AAPL --live
+npm start -- macd AAPL --live
+npm start -- cup-handle AAPL
 ```
 
 ## 📊 Available Technical Indicators
@@ -49,10 +51,10 @@ npm start -- bollinger AAPL --live
 - **IMI (Intraday Momentum Index)** - Intraday momentum analysis
 - **EMA (Exponential Moving Average)** - Trend-following indicator with recent price emphasis
 - **ATR (Average True Range)** - Volatility measurement and risk assessment
+- **MACD (Moving Average Convergence Divergence)** - Trend-following momentum indicator with crossover signals
+- **Cup & Handle Pattern** - Chart pattern recognition for bullish continuation patterns
 
-### 🔄 Placeholder Indicators
-- **Cup & Handle Pattern** - Chart pattern recognition
-- **MACD** - Moving Average Convergence Divergence
+
 
 ## 🌐 HTTP API Endpoints
 
@@ -90,6 +92,14 @@ GET /api/ema/:symbol/quick   # Quick EMA value and trend
 # Average True Range Endpoints
 GET /api/atr/:symbol         # Comprehensive ATR analysis with position sizing
 GET /api/atr/:symbol/quick   # Quick ATR volatility assessment
+
+# MACD Endpoints
+GET /api/macd/:symbol        # Comprehensive MACD analysis with crossover signals
+GET /api/macd/:symbol/quick  # Quick MACD values and signal
+
+# Cup and Handle Pattern Endpoints
+GET /api/cup-handle/:symbol        # Comprehensive Cup and Handle pattern analysis
+GET /api/cup-handle/:symbol/quick  # Quick Cup and Handle pattern detection
 ```
 
 ## 💻 Command Line Interface
@@ -148,6 +158,24 @@ npm start -- atr AAPL --test-data ibm-recent-data
 npm start -- quick-atr AAPL             # JSON output
 ```
 
+### MACD Analysis
+```bash
+npm start -- macd AAPL                  # Basic MACD analysis
+npm start -- macd AAPL --fast 12 --slow 26 --signal 9  # Custom periods
+npm start -- macd AAPL --test-data ibm-recent-data     # Use test data
+npm start -- quick-macd AAPL            # JSON output
+```
+
+### Cup and Handle Pattern Analysis
+```bash
+npm start -- cup-handle AAPL            # Basic pattern analysis
+npm start -- cup-handle AAPL --mock     # Use mock data for demonstration
+npm start -- cup-handle AAPL --test-data cup-and-handle-strong  # Use test data
+npm start -- cup-analysis AAPL          # Advanced analysis with custom parameters
+npm start -- quick-cup-handle AAPL      # JSON output
+npm start -- list-test-data             # List available test data files
+```
+
 ## 🔧 Integration Examples
 
 ### JavaScript/Node.js
@@ -173,6 +201,14 @@ console.log(`EMA: ${ema.data.ema}, Trend: ${ema.data.trend}`);
 // Get ATR analysis
 const atr = await axios.get('http://localhost:3000/api/atr/AAPL/quick');
 console.log(`ATR: ${atr.data.atr}, Volatility: ${atr.data.volatility}`);
+
+// Get MACD analysis
+const macd = await axios.get('http://localhost:3000/api/macd/AAPL/quick');
+console.log(`MACD: ${macd.data.macd}, Signal: ${macd.data.signal}, Histogram: ${macd.data.histogram}`);
+
+// Get Cup and Handle analysis
+const cupHandle = await axios.get('http://localhost:3000/api/cup-handle/AAPL/quick');
+console.log(`Pattern Detected: ${cupHandle.data.patternDetected}, Confidence: ${cupHandle.data.confidence}`);
 ```
 
 ### Python
@@ -188,6 +224,16 @@ print(f"RSI: {rsi_data['rsi']}, Signal: {rsi_data['signal']}")
 response = requests.get('http://localhost:3000/api/bollinger/AAPL/quick')
 bb_data = response.json()
 print(f"Price: {bb_data['price']}, %B: {bb_data['percentB']}%")
+
+# Get MACD analysis
+response = requests.get('http://localhost:3000/api/macd/AAPL/quick')
+macd_data = response.json()
+print(f"MACD: {macd_data['macd']}, Signal: {macd_data['signal']}, Crossover: {macd_data['crossover']}")
+
+# Get Cup and Handle analysis
+response = requests.get('http://localhost:3000/api/cup-handle/AAPL/quick')
+cup_data = response.json()
+print(f"Pattern: {cup_data['patternDetected']}, Confidence: {cup_data['confidence']}, Target: ${cup_data['targetPrice']}")
 ```
 
 ### cURL
@@ -203,6 +249,12 @@ curl "http://localhost:3000/api/bollinger/AAPL?period=20&multiplier=2.5"
 
 # Get MFI with mock data
 curl "http://localhost:3000/api/mfi/AAPL?mock=true"
+
+# Get MACD with custom parameters
+curl "http://localhost:3000/api/macd/AAPL?fastPeriod=12&slowPeriod=26&signalPeriod=9"
+
+# Get Cup and Handle pattern analysis
+curl "http://localhost:3000/api/cup-handle/AAPL?mock=true"
 ```
 
 ## 📈 Data Sources
@@ -505,17 +557,19 @@ test-data/           # Test datasets
 ## 🎯 Features
 
 ### ✅ Implemented Features
-- **6 Technical Indicators** - RSI, Bollinger Bands, MFI, IMI, EMA, ATR
+- **8 Technical Indicators** - RSI, Bollinger Bands, MFI, IMI, EMA, ATR, MACD, Cup & Handle Pattern
 - **HTTP API Server** - RESTful endpoints with JSON responses
 - **Command Line Interface** - Full CLI with help and options
 - **Multiple Data Sources** - Live API, test data, mock data
 - **Educational Content** - Built-in explanations for each indicator
 - **Trading Signals** - Buy/Sell/Hold recommendations
 - **Multi-timeframe Analysis** - RSI and EMA across multiple periods
-- **Pattern Recognition** - Bollinger Band squeeze detection
+- **Pattern Recognition** - Bollinger Band squeeze detection and Cup & Handle patterns
 - **Volume Analysis** - MFI and IMI volume-based indicators
 - **Volatility Assessment** - ATR for risk management and position sizing
-- **Trend Analysis** - EMA for trend identification and crossover signals
+- **Trend Analysis** - EMA and MACD for trend identification and crossover signals
+- **Momentum Analysis** - MACD crossovers, histogram analysis, and divergence detection
+- **Chart Pattern Detection** - Cup & Handle pattern recognition with confidence scoring
 - **Comprehensive Documentation** - API docs and integration examples
 
 ### 🔄 Planned Features

@@ -1,6 +1,7 @@
 import express from 'express';
 import { getCandles } from '../commands/helper/getCandles';
 import { loadTestData } from '../util/testDataLoader';
+import { analyzeMACDSignals, getMACDResult } from '../indicators/macd';
 
 const router = express.Router();
 
@@ -38,17 +39,8 @@ router.get('/:symbol', async (req, res) => {
       candles = await getCandles(symbol);
     }
 
-    // Placeholder MACD analysis
-    const analysis = {
-      macd: { current: 0, previous: 0 },
-      signal_line: { current: 0, previous: 0 },
-      histogram: { current: 0, previous: 0 },
-      trading_signal: 'HOLD',
-      trend: 'NEUTRAL',
-      momentum: 'STABLE',
-      divergence: 'NONE',
-      interpretation: ['MACD analysis not yet implemented']
-    };
+    // Perform MACD analysis
+    const analysis = analyzeMACDSignals(candles, options.fastPeriod, options.slowPeriod, options.signalPeriod);
 
     // Extract the key data from the analysis result
     const responseData = {
@@ -57,20 +49,24 @@ router.get('/:symbol', async (req, res) => {
       timestamp: new Date().toISOString(),
       data: {
         current: {
-          macd: analysis?.macd?.current || 0,
-          signal: analysis?.signal_line?.current || 0,
-          histogram: analysis?.histogram?.current || 0
+          macd: analysis.macd.current,
+          signal: analysis.macd.signalCurrent,
+          histogram: analysis.macd.histogramCurrent
         },
         previous: {
-          macd: analysis?.macd?.previous || 0,
-          signal: analysis?.signal_line?.previous || 0,
-          histogram: analysis?.histogram?.previous || 0
+          macd: analysis.macd.previous,
+          signal: analysis.macd.signalPrevious,
+          histogram: analysis.macd.histogramPrevious
         },
-        signal: analysis?.trading_signal || 'HOLD',
-        trend: analysis?.trend || 'NEUTRAL',
-        momentum: analysis?.momentum || 'STABLE',
-        divergence: analysis?.divergence || 'NONE',
-        interpretation: analysis?.interpretation || []
+        signal: analysis.signal,
+        crossover: analysis.crossover,
+        trend: analysis.trend,
+        momentum: analysis.momentum,
+        strength: analysis.strength,
+        divergence: analysis.divergence,
+        interpretation: analysis.interpretation,
+        tradingStrategy: analysis.tradingStrategy,
+        chartData: analysis.chartData
       },
       parameters: {
         fastPeriod: options.fastPeriod,
@@ -113,20 +109,28 @@ router.get('/:symbol/quick', async (req, res) => {
       signalPeriod: parseInt(signalPeriod as string)
     };
 
-    // Placeholder MACD analysis
-    const analysis = {
-      macd: { current: 0 },
-      signal_line: { current: 0 },
-      histogram: { current: 0 },
-      trading_signal: 'HOLD'
-    };
+    // Get candle data for quick analysis
+    let candles: any;
+    try {
+      candles = await getCandles(symbol);
+      if (candles.length < Math.max(options.slowPeriod + options.signalPeriod, 50)) {
+        candles = generateMockCandles(symbol, 200);
+      }
+    } catch (error) {
+      candles = generateMockCandles(symbol, 200);
+    }
+
+    // Perform quick MACD analysis
+    const macdResult = getMACDResult(candles, options.fastPeriod, options.slowPeriod, options.signalPeriod);
 
     res.json({
       symbol: symbol.toUpperCase(),
-      macd: analysis?.macd?.current || 0,
-      signal: analysis?.signal_line?.current || 0,
-      histogram: analysis?.histogram?.current || 0,
-      trading_signal: analysis?.trading_signal || 'HOLD',
+      macd: macdResult.current,
+      signal: macdResult.signalCurrent,
+      histogram: macdResult.histogramCurrent,
+      crossover: macdResult.current > macdResult.signalCurrent ?
+        (macdResult.previous <= macdResult.signalPrevious ? 'BULLISH_CROSSOVER' : 'BULLISH') :
+        (macdResult.previous >= macdResult.signalPrevious ? 'BEARISH_CROSSOVER' : 'BEARISH'),
       timestamp: new Date().toISOString()
     });
 

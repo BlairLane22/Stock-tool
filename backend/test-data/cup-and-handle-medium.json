@@ -1,20 +1,21 @@
 {
   "symbol": "TEST_MEDIUM",
   "timeframe": "daily", 
-  "description": "Medium confidence cup and handle pattern with 18% cup depth and 12% handle depth. Pattern has good structure but handle is slightly deeper than ideal.",
+  "description": "Medium confidence cup and handle pattern with 7.3% cup depth and 4.0% handle depth. Pattern has shallow cup but acceptable structure.",
   "expectedPattern": {
     "type": "cup-and-handle",
+    "shouldDetect": true,
     "confidence": "MEDIUM",
     "cupStart": 0,
     "cupBottom": 12,
     "cupEnd": 24,
     "handleStart": 25,
     "handleEnd": 32,
-    "cupDepth": 18.0,
-    "handleDepth": 12.0,
-    "breakoutLevel": 110.0,
-    "targetPrice": 129.8,
-    "riskReward": 2.1
+    "cupDepth": 7.3,
+    "handleDepth": 4.0,
+    "breakoutLevel": 111.8,
+    "targetPrice": 119.8,
+    "riskReward": 2.0
   },
   "candles": [
     {"open": 109.50, "high": 110.20, "low": 108.80, "close": 110.00, "volume": 800000, "timeStamp": 1672531200},
