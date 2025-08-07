@@ -69,6 +69,10 @@ app.get('/', (req, res) => {
       cupHandle: {
         'GET /api/cup-handle/:symbol': 'Get comprehensive Cup and Handle pattern analysis',
         'GET /api/cup-handle/:symbol/quick': 'Get quick Cup and Handle pattern detection'
+      },
+      headAndShoulders: {
+        'GET /api/head-and-shoulders/:symbol': 'Get comprehensive Head and Shoulders pattern analysis',
+        'GET /api/head-and-shoulders/:symbol/quick': 'Get quick Head and Shoulders pattern detection'
       }
     },
     status: 'Routes loading individually to avoid import issues'
@@ -1375,6 +1379,162 @@ app.get('/api/cup-handle/:symbol/quick', async (req, res) => {
   }
 });
 
+// Head and Shoulders pattern analysis endpoint
+app.get('/api/head-and-shoulders/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { mock = 'true' } = req.query;
+
+    // Mock result for Head and Shoulders analysis
+    const mockResult = {
+      symbol: symbol.toUpperCase(),
+      indicator: 'Head and Shoulders Pattern',
+      timestamp: new Date().toISOString(),
+      data: {
+        patternDetected: true,
+        confidence: 'HIGH',
+        stage: 'COMPLETED',
+        leftShoulderHeight: 152.30,
+        headHeight: 165.80,
+        rightShoulderHeight: 151.90,
+        necklineLevel: 142.50,
+        breakoutLevel: 142.50,
+        targetPrice: 119.20,
+        stopLoss: 155.00,
+        patternDuration: 65,
+        volumeConfirmation: true,
+        strength: 85,
+        riskReward: 1.8,
+        signal: 'SELL',
+        interpretation: [
+          '✅ Head and Shoulders pattern detected with HIGH confidence',
+          '🚀 Pattern complete - ready for breakdown',
+          '📏 Head prominence: 8.9%',
+          '⚖️ Shoulder symmetry: 99.7%',
+          '⏱️ Pattern duration: 65 periods',
+          '🎯 Risk/Reward ratio: 1.8:1',
+          '📈 Volume pattern supports bearish reversal'
+        ],
+        tradingStrategy: {
+          entry: 'Enter short position on break below $142.50',
+          exit: 'Target reached or stop loss hit',
+          stopLoss: 155.00,
+          target: 119.20
+        },
+        chartData: {
+          timestamps: Array.from({length: 100}, (_, i) => Date.now() - (100-i) * 24*60*60*1000),
+          prices: Array.from({length: 100}, (_, i) => 140 + Math.sin(i/10) * 15 + Math.random() * 5),
+          volume: Array.from({length: 100}, () => Math.floor(Math.random() * 2000000) + 500000),
+          leftShoulderStartIndex: 15,
+          leftShoulderPeakIndex: 25,
+          leftShoulderEndIndex: 35,
+          headStartIndex: 35,
+          headPeakIndex: 50,
+          headEndIndex: 65,
+          rightShoulderStartIndex: 65,
+          rightShoulderPeakIndex: 75,
+          rightShoulderEndIndex: 85,
+          necklineLeftIndex: 35,
+          necklineRightIndex: 65,
+          breakoutLevel: 142.50,
+          targetPrice: 119.20,
+          stopLoss: 155.00
+        }
+      },
+      parameters: {
+        minPatternPeriods: 20,
+        maxPatternPeriods: 100
+      },
+      metadata: {
+        dataPoints: 100,
+        dataSource: 'Mock Data'
+      }
+    };
+
+    if (mock === 'false') {
+      // Try real API only if explicitly requested
+      const { analyzeHeadAndShouldersPattern } = await import('./indicators/headAndShoulders');
+      const { getCandles } = await import('./commands/helper/getCandles');
+      const candles = await getCandles(symbol);
+      const analysis = analyzeHeadAndShouldersPattern(candles);
+
+      res.json({
+        symbol: symbol.toUpperCase(),
+        indicator: 'Head and Shoulders Pattern',
+        timestamp: new Date().toISOString(),
+        data: analysis,
+        parameters: { minPatternPeriods: 20, maxPatternPeriods: 100 },
+        metadata: { dataPoints: candles.length, dataSource: 'Live API' }
+      });
+    } else {
+      res.json(mockResult);
+    }
+
+  } catch (error) {
+    console.error('Head and Shoulders analysis error:', error);
+    res.status(500).json({
+      error: 'Head and Shoulders Analysis Failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Quick Head and Shoulders endpoint
+app.get('/api/head-and-shoulders/:symbol/quick', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { mock = 'true' } = req.query;
+
+    // Mock result for quick Head and Shoulders
+    const mockResult = {
+      symbol: symbol.toUpperCase(),
+      isPattern: true,
+      confidence: 'HIGH',
+      signal: 'SELL',
+      stage: 'COMPLETED',
+      strength: 85,
+      breakoutLevel: 142.50,
+      targetPrice: 119.20,
+      stopLoss: 155.00,
+      riskReward: 1.8,
+      timestamp: Math.floor(Date.now() / 1000)
+    };
+
+    if (mock === 'false') {
+      // Try real API only if explicitly requested
+      const { analyzeHeadAndShouldersPattern } = await import('./indicators/headAndShoulders');
+      const { getCandles } = await import('./commands/helper/getCandles');
+      const candles = await getCandles(symbol);
+      const analysis = analyzeHeadAndShouldersPattern(candles);
+
+      res.json({
+        symbol: symbol.toUpperCase(),
+        isPattern: analysis.pattern.isPattern,
+        confidence: analysis.pattern.confidence,
+        signal: analysis.signal,
+        stage: analysis.stage,
+        strength: analysis.strength,
+        breakoutLevel: analysis.pattern.breakoutLevel,
+        targetPrice: analysis.pattern.targetPrice,
+        stopLoss: analysis.pattern.stopLoss,
+        riskReward: analysis.riskReward,
+        timestamp: Math.floor(Date.now() / 1000)
+      });
+    } else {
+      res.json(mockResult);
+    }
+
+  } catch (error) {
+    console.error('Quick Head and Shoulders error:', error);
+    res.status(500).json({
+      error: 'Quick Head and Shoulders Failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('API Error:', err);
@@ -1408,6 +1568,7 @@ app.listen(PORT, () => {
   console.log(`   ATR: http://localhost:${PORT}/api/atr/AAPL/quick`);
   console.log(`   MACD: http://localhost:${PORT}/api/macd/AAPL/quick`);
   console.log(`   Cup & Handle: http://localhost:${PORT}/api/cup-handle/AAPL/quick`);
+  console.log(`   Head & Shoulders: http://localhost:${PORT}/api/head-and-shoulders/AAPL/quick`);
 });
 
 export default app;

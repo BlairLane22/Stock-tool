@@ -53,6 +53,7 @@ npm start -- cup-handle AAPL
 - **ATR (Average True Range)** - Volatility measurement and risk assessment
 - **MACD (Moving Average Convergence Divergence)** - Trend-following momentum indicator with crossover signals
 - **Cup & Handle Pattern** - Chart pattern recognition for bullish continuation patterns
+- **Head & Shoulders Pattern** - Chart pattern recognition for bearish reversal patterns
 
 
 
@@ -100,6 +101,10 @@ GET /api/macd/:symbol/quick  # Quick MACD values and signal
 # Cup and Handle Pattern Endpoints
 GET /api/cup-handle/:symbol        # Comprehensive Cup and Handle pattern analysis
 GET /api/cup-handle/:symbol/quick  # Quick Cup and Handle pattern detection
+
+# Head and Shoulders Pattern Endpoints
+GET /api/head-and-shoulders/:symbol        # Comprehensive Head and Shoulders pattern analysis
+GET /api/head-and-shoulders/:symbol/quick  # Quick Head and Shoulders pattern detection
 ```
 
 ## 💻 Command Line Interface
@@ -160,7 +165,9 @@ npm start -- quick-atr AAPL             # JSON output
 
 ### MACD Analysis
 ```bash
-npm start -- macd AAPL                  # Basic MACD analysis
+npm start -- macd AAPL                  # Basic MACD analysis (uses live data by default)
+npm start -- macd AAPL --live           # Explicitly use live API data
+npm start -- macd AAPL --mock           # Use mock data for demonstration
 npm start -- macd AAPL --fast 12 --slow 26 --signal 9  # Custom periods
 npm start -- macd AAPL --test-data ibm-recent-data     # Use test data
 npm start -- quick-macd AAPL            # JSON output
@@ -174,6 +181,16 @@ npm start -- cup-handle AAPL --test-data cup-and-handle-strong  # Use test data
 npm start -- cup-analysis AAPL          # Advanced analysis with custom parameters
 npm start -- quick-cup-handle AAPL      # JSON output
 npm start -- list-test-data             # List available test data files
+```
+
+### Head and Shoulders Pattern Analysis
+```bash
+npm start -- head-shoulders AAPL        # Basic pattern analysis
+npm start -- head-shoulders AAPL --mock # Use mock data for demonstration
+npm start -- head-shoulders AAPL --test-data ibm-recent-data  # Use test data
+npm start -- head-shoulders AAPL --live # Use live API data
+npm start -- head-shoulders-analysis AAPL  # Advanced analysis with custom parameters
+npm start -- quick-head-shoulders AAPL  # JSON output
 ```
 
 ## 🔧 Integration Examples
@@ -209,6 +226,10 @@ console.log(`MACD: ${macd.data.macd}, Signal: ${macd.data.signal}, Histogram: ${
 // Get Cup and Handle analysis
 const cupHandle = await axios.get('http://localhost:3000/api/cup-handle/AAPL/quick');
 console.log(`Pattern Detected: ${cupHandle.data.patternDetected}, Confidence: ${cupHandle.data.confidence}`);
+
+// Get Head and Shoulders analysis
+const headShoulders = await axios.get('http://localhost:3000/api/head-and-shoulders/AAPL/quick');
+console.log(`Pattern Detected: ${headShoulders.data.isPattern}, Signal: ${headShoulders.data.signal}`);
 ```
 
 ### Python
@@ -234,6 +255,11 @@ print(f"MACD: {macd_data['macd']}, Signal: {macd_data['signal']}, Crossover: {ma
 response = requests.get('http://localhost:3000/api/cup-handle/AAPL/quick')
 cup_data = response.json()
 print(f"Pattern: {cup_data['patternDetected']}, Confidence: {cup_data['confidence']}, Target: ${cup_data['targetPrice']}")
+
+# Get Head and Shoulders analysis
+response = requests.get('http://localhost:3000/api/head-and-shoulders/AAPL/quick')
+hs_data = response.json()
+print(f"Pattern: {hs_data['isPattern']}, Signal: {hs_data['signal']}, Target: ${hs_data['targetPrice']}")
 ```
 
 ### cURL
@@ -255,6 +281,9 @@ curl "http://localhost:3000/api/macd/AAPL?fastPeriod=12&slowPeriod=26&signalPeri
 
 # Get Cup and Handle pattern analysis
 curl "http://localhost:3000/api/cup-handle/AAPL?mock=true"
+
+# Get Head and Shoulders pattern analysis
+curl "http://localhost:3000/api/head-and-shoulders/AAPL?mock=true"
 ```
 
 ## 📈 Data Sources
@@ -557,19 +586,20 @@ test-data/           # Test datasets
 ## 🎯 Features
 
 ### ✅ Implemented Features
-- **8 Technical Indicators** - RSI, Bollinger Bands, MFI, IMI, EMA, ATR, MACD, Cup & Handle Pattern
+- **9 Technical Indicators** - RSI, Bollinger Bands, MFI, IMI, EMA, ATR, MACD, Cup & Handle Pattern, Head & Shoulders Pattern
 - **HTTP API Server** - RESTful endpoints with JSON responses
 - **Command Line Interface** - Full CLI with help and options
 - **Multiple Data Sources** - Live API, test data, mock data
 - **Educational Content** - Built-in explanations for each indicator
 - **Trading Signals** - Buy/Sell/Hold recommendations
 - **Multi-timeframe Analysis** - RSI and EMA across multiple periods
-- **Pattern Recognition** - Bollinger Band squeeze detection and Cup & Handle patterns
+- **Pattern Recognition** - Bollinger Band squeeze detection, Cup & Handle patterns, and Head & Shoulders patterns
 - **Volume Analysis** - MFI and IMI volume-based indicators
 - **Volatility Assessment** - ATR for risk management and position sizing
 - **Trend Analysis** - EMA and MACD for trend identification and crossover signals
 - **Momentum Analysis** - MACD crossovers, histogram analysis, and divergence detection
-- **Chart Pattern Detection** - Cup & Handle pattern recognition with confidence scoring
+- **Chart Pattern Detection** - Cup & Handle and Head & Shoulders pattern recognition with confidence scoring
+- **Reversal Pattern Detection** - Head & Shoulders bearish reversal pattern identification
 - **Comprehensive Documentation** - API docs and integration examples
 
 ### 🔄 Planned Features

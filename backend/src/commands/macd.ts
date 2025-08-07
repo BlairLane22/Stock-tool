@@ -57,7 +57,9 @@ export async function macd(
   fastPeriod: number = 12,
   slowPeriod: number = 26,
   signalPeriod: number = 9,
-  testData?: string
+  testData?: string,
+  live: boolean = true,
+  forceMock: boolean = false
 ): Promise<void> {
   console.log(`\n=== MACD Analysis for ${symbol.toUpperCase()} ===\n`);
 
@@ -75,7 +77,15 @@ export async function macd(
       if (testDataObj.description) {
         console.log(`📋 Test Description: ${testDataObj.description}\n`);
       }
+    } else if (forceMock) {
+      // Force mock data
+      console.log('🎭 Using mock data for demonstration\n');
+      currentPrice = 150; // Default price for mock data
+      candles = generateMockCandles(currentPrice);
     } else {
+      // Use live data (default behavior)
+      console.log('📡 Fetching live market data...\n');
+
       // Get current quote
       const quote = await getQuote(symbol.toUpperCase());
       currentPrice = quote.current;
@@ -86,6 +96,8 @@ export async function macd(
         if (candles.length < Math.max(slowPeriod + signalPeriod, 50)) {
           console.log('⚠️  Insufficient historical data from API, using mock data for demonstration');
           candles = generateMockCandles(currentPrice);
+        } else {
+          console.log(`📈 Retrieved ${candles.length} periods of historical data\n`);
         }
       } catch (error) {
         console.log('⚠️  API error fetching historical data, using mock data for demonstration');

@@ -11,6 +11,7 @@ import { movingAverage } from './commands/movingAverage';
 import { personalTradingStrategy } from './commands/personalTradingStrategy';
 import { macd } from './commands/macd';
 import { cupAndHandlePattern, cupAndHandleAnalysis, listTestData } from './commands/cupAndHandlePattern';
+import { headAndShouldersPattern, headAndShouldersAnalysis, quickHeadAndShoulders } from './commands/headAndShouldersPattern';
 import { rsiAnalysis, quickRSI } from './commands/rsiAnalysis';
 import { bollingerBandsAnalysis, quickBollingerBands } from './commands/bollingerBandsAnalysis';
 import { mfiAnalysis, quickMFI } from './commands/mfiAnalysis';
@@ -78,11 +79,13 @@ program
   .option('--slow <period>', 'slow EMA period', '26')
   .option('--signal <period>', 'signal line EMA period', '9')
   .option('--test-data <filename>', 'use specific test data file (without .json extension)')
+  .option('--live', 'use live API data (default behavior)', false)
+  .option('--mock', 'force use of mock data for demonstration', false)
   .action(async (symbol, cmdObj) => {
     const fast = parseInt(cmdObj.fast);
     const slow = parseInt(cmdObj.slow);
     const signal = parseInt(cmdObj.signal);
-    await macd(symbol, fast, slow, signal, cmdObj.testData);
+    await macd(symbol, fast, slow, signal, cmdObj.testData, cmdObj.live, cmdObj.mock);
   });
 
 program
@@ -107,6 +110,38 @@ program
     const minHandle = parseInt(cmdObj.minHandle);
     const maxHandle = parseInt(cmdObj.maxHandle);
     await cupAndHandleAnalysis(symbol, minCup, maxCup, minHandle, maxHandle);
+  });
+
+program
+  .command('head-shoulders <symbol>')
+  .description(`detect and analyze Head and Shoulders chart pattern`)
+  .option('--mock', 'use generated mock data for demonstration', false)
+  .option('--test-data <filename>', 'use specific test data file (without .json extension)')
+  .option('--live', 'use live API data instead of mock data', false)
+  .action(async (symbol, cmdObj) => {
+    await headAndShouldersPattern(symbol, {
+      testData: cmdObj.testData,
+      live: cmdObj.live,
+      mock: cmdObj.mock
+    });
+  });
+
+program
+  .command('head-shoulders-analysis <symbol>')
+  .description(`advanced Head and Shoulders analysis with custom parameters`)
+  .option('--min-pattern <periods>', 'minimum pattern periods', '20')
+  .option('--max-pattern <periods>', 'maximum pattern periods', '100')
+  .option('--test-data <filename>', 'use specific test data file')
+  .option('--live', 'use live API data instead of mock data', false)
+  .action(async (symbol, cmdObj) => {
+    const minPatternPeriods = parseInt(cmdObj.minPattern);
+    const maxPatternPeriods = parseInt(cmdObj.maxPattern);
+    await headAndShouldersAnalysis(symbol, {
+      minPatternPeriods,
+      maxPatternPeriods,
+      testData: cmdObj.testData,
+      live: cmdObj.live
+    });
   });
 
 program
@@ -413,6 +448,23 @@ program
       };
 
       console.log(JSON.stringify(quickResult, null, 2));
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('quick-head-shoulders <symbol>')
+  .description('get quick Head and Shoulders pattern detection (API endpoint)')
+  .option('--test-data <filename>', 'use specific test data file')
+  .option('--live', 'use live API data instead of mock data', false)
+  .action(async (symbol, cmdObj) => {
+    try {
+      await quickHeadAndShoulders(symbol, {
+        testData: cmdObj.testData,
+        live: cmdObj.live
+      });
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
       process.exit(1);
