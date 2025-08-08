@@ -1,34 +1,50 @@
 # StockTrack Portfolio API
 
-Portfolio management API for the StockTrack trading system. This service provides comprehensive portfolio management capabilities including holdings tracking, watchlist management, performance analysis, and integration with the StockTrack backend trading indicators.
+**AI-Powered Portfolio Management & Trading System**
+
+A comprehensive portfolio management API that acts as a **pretend bank account** with AI-driven trading decisions. The system integrates with the StockTrack backend API to analyze stocks using multiple technical indicators and make intelligent trading recommendations.
+
+## 🎯 Key Features
+
+- **🤖 AI Trading Assistant** - Analyzes stocks using RSI, MACD, Bollinger Bands, Head & Shoulders, and Cup & Handle patterns
+- **💰 Virtual Bank Account** - Manages portfolio with $100,000 starting cash
+- **📊 SQLite Database** - Persistent storage for portfolios, holdings, and trading decisions
+- **🔍 Multi-Indicator Analysis** - Combines multiple technical indicators for trading signals
+- **📈 Real-time Integration** - Live market data from Alpha Vantage API
+- **🎯 Smart Recommendations** - BUY/SELL/HOLD/WATCH signals with confidence levels
 
 ## 🚀 Quick Start
 
-### Development Setup
+### Prerequisites
+- **Backend API** running on port 3000 (StockTrack technical indicators)
+- **Alpha Vantage API Key** configured in backend
+- Node.js 18+ and npm
+
+### Setup & Installation
 
 ```bash
 # Install dependencies
 npm install
 
-# Copy environment file
-cp .env.example .env
-
-# Start development server
-npm run dev
-
-# Or start with auto-reload
-npm run dev:watch
-```
-
-### Production Setup
-
-```bash
-# Build the application
+# Build TypeScript
 npm run build
 
-# Start production server
+# Start the server
 npm start
 ```
+
+The server will:
+- 🚀 Start on **port 3001**
+- 📊 Create SQLite database at `data/portfolio.db`
+- 👤 Initialize your user account (Blair Lane)
+- 💰 Create empty portfolio with $100,000 cash
+- 🔗 Connect to backend API on port 3000
+
+### Your Default Account
+- **User**: Blair Lane (user-blair-1)
+- **Portfolio**: "Blair's Trading Account" (portfolio-blair-main)
+- **Starting Cash**: $100,000
+- **Holdings**: Empty (clean slate as requested)
 
 ## 📊 API Endpoints
 
