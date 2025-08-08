@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockTrack Portfolio API Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .api-info {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .endpoint-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .endpoint {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .endpoint:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .method {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-right: 10px;
+        }
+
+        .method.get { background: #4CAF50; color: white; }
+        .method.post { background: #2196F3; color: white; }
+        .method.put { background: #FF9800; color: white; }
+        .method.delete { background: #f44336; color: white; }
+
+        .endpoint-url {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .endpoint-description {
+            margin-top: 10px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .test-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .test-button:hover {
+            background: #5a6fd8;
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .demo-portfolio {
+            background: #f0f8ff;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .holding {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .holding:last-child {
+            border-bottom: none;
+        }
+
+        .symbol {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .positive { color: #4CAF50; }
+        .negative { color: #f44336; }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .endpoint-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 StockTrack Portfolio API</h1>
+            <p>Complete portfolio management and tracking system</p>
+        </div>
+
+        <div class="api-info">
+            <div class="server-status">
+                <div class="status-indicator"></div>
+                <strong>Server Status: Online</strong>
+            </div>
+            <p><strong>Base URL:</strong> <code>http://localhost:3001</code></p>
+            <p><strong>API Version:</strong> 1.0.0</p>
+            <p><strong>Environment:</strong> Development</p>
+            <p><strong>Backend Integration:</strong> Connected to Technical Indicators API (port 3000)</p>
+            <button class="test-button" onclick="testConnection()" style="margin-top: 10px;">🔗 Test Connection</button>
+        </div>
+
+        <div class="endpoint-section">
+            <h2 class="section-title">🏦 Portfolio Management</h2>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-url">/api/portfolio</span>
+                <div class="endpoint-description">Get all portfolios for the current user</div>
+                <button class="test-button" onclick="testEndpoint('GET', '/api/portfolio')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-url">/api/portfolio</span>
+                <div class="endpoint-description">Create a new portfolio</div>
+                <button class="test-button" onclick="testEndpoint('POST', '/api/portfolio')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-url">/api/portfolio/:id</span>
+                <div class="endpoint-description">Get specific portfolio details</div>
+                <button class="test-button" onclick="testEndpoint('GET', '/api/portfolio/demo-portfolio-1')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method put">PUT</span>
+                <span class="endpoint-url">/api/portfolio/:id</span>
+                <div class="endpoint-description">Update portfolio information</div>
+                <button class="test-button" onclick="testEndpoint('PUT', '/api/portfolio/demo-portfolio-1')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method delete">DELETE</span>
+                <span class="endpoint-url">/api/portfolio/:id</span>
+                <div class="endpoint-description">Delete a portfolio</div>
+                <button class="test-button" onclick="testEndpoint('DELETE', '/api/portfolio/demo-portfolio-1')">Test Endpoint</button>
+            </div>
+        </div>
+
+        <div class="endpoint-section">
+            <h2 class="section-title">📈 Holdings Management</h2>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-url">/api/portfolio/:id/holdings</span>
+                <div class="endpoint-description">Get all holdings in a portfolio with real-time market data</div>
+                <button class="test-button" onclick="testEndpoint('GET', '/api/portfolio/demo-portfolio-1/holdings')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-url">/api/portfolio/:id/holdings</span>
+                <div class="endpoint-description">Add a new stock holding to portfolio</div>
+                <button class="test-button" onclick="testEndpoint('POST', '/api/portfolio/demo-portfolio-1/holdings')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method put">PUT</span>
+                <span class="endpoint-url">/api/portfolio/:id/holdings/:holdingId</span>
+                <div class="endpoint-description">Update existing holding information</div>
+                <button class="test-button" onclick="testEndpoint('PUT', '/api/portfolio/demo-portfolio-1/holdings/holding-1')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method delete">DELETE</span>
+                <span class="endpoint-url">/api/portfolio/:id/holdings/:holdingId</span>
+                <div class="endpoint-description">Remove a holding from portfolio</div>
+                <button class="test-button" onclick="testEndpoint('DELETE', '/api/portfolio/demo-portfolio-1/holdings/holding-1')">Test Endpoint</button>
+            </div>
+        </div>
+
+        <div class="endpoint-section">
+            <h2 class="section-title">📊 Portfolio Analysis</h2>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-url">/api/portfolio/:id/analysis</span>
+                <div class="endpoint-description">Get comprehensive portfolio analysis and metrics</div>
+                <button class="test-button" onclick="testEndpoint('GET', '/api/portfolio/demo-portfolio-1/analysis')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-url">/api/portfolio/:id/performance</span>
+                <div class="endpoint-description">Get portfolio performance data over time</div>
+                <button class="test-button" onclick="testEndpoint('GET', '/api/portfolio/demo-portfolio-1/performance')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-url">/api/portfolio/:id/risk</span>
+                <div class="endpoint-description">Get portfolio risk analysis and assessment</div>
+                <button class="test-button" onclick="testEndpoint('GET', '/api/portfolio/demo-portfolio-1/risk')">Test Endpoint</button>
+            </div>
+        </div>
+
+        <div class="endpoint-section">
+            <h2 class="section-title">👀 Watchlist Management</h2>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="endpoint-url">/api/portfolio/:id/watchlist</span>
+                <div class="endpoint-description">Get watchlist with real-time market data and RSI signals</div>
+                <button class="test-button" onclick="testEndpoint('GET', '/api/portfolio/demo-portfolio-1/watchlist')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span class="endpoint-url">/api/portfolio/:id/watchlist</span>
+                <div class="endpoint-description">Add a stock to watchlist</div>
+                <button class="test-button" onclick="testEndpoint('POST', '/api/portfolio/demo-portfolio-1/watchlist')">Test Endpoint</button>
+            </div>
+
+            <div class="endpoint">
+                <span class="method delete">DELETE</span>
+                <span class="endpoint-url">/api/portfolio/:id/watchlist/:symbol</span>
+                <div class="endpoint-description">Remove a stock from watchlist</div>
+                <button class="test-button" onclick="testEndpoint('DELETE', '/api/portfolio/demo-portfolio-1/watchlist/TSLA')">Test Endpoint</button>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2 class="section-title">🎯 Demo Portfolio</h2>
+            <p>The API includes a demo portfolio with sample data for testing:</p>
+            
+            <div class="demo-portfolio">
+                <h3>📊 My Investment Portfolio</h3>
+                <div class="holding">
+                    <div>
+                        <span class="symbol">AAPL</span> - Apple Inc.
+                        <div>100 shares @ $150.00</div>
+                    </div>
+                    <div class="positive">+$2,500 (16.7%)</div>
+                </div>
+                <div class="holding">
+                    <div>
+                        <span class="symbol">MSFT</span> - Microsoft Corp.
+                        <div>50 shares @ $300.00</div>
+                    </div>
+                    <div class="positive">+$1,250 (8.3%)</div>
+                </div>
+                <div class="holding">
+                    <div>
+                        <span class="symbol">GOOGL</span> - Alphabet Inc.
+                        <div>25 shares @ $2,500.00</div>
+                    </div>
+                    <div class="negative">-$1,875 (-3.0%)</div>
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #667eea;">
+                    <strong>Total Portfolio Value: $95,000</strong><br>
+                    <strong>Available Cash: $5,000</strong><br>
+                    <strong>Total Gain/Loss: +$1,875 (2.0%)</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>🚀 StockTrack Portfolio API - Built with Express.js & TypeScript</p>
+            <p>Integrated with Technical Indicators API for real-time market data</p>
+        </div>
+    </div>
+
+    <script>
+        async function testEndpoint(method, endpoint) {
+            console.log('Testing endpoint:', method, endpoint);
+
+            const baseUrl = 'http://localhost:3001';
+            const fullUrl = baseUrl + endpoint;
+
+            // Show loading indicator
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Testing...';
+            button.disabled = true;
+
+            console.log('Full URL:', fullUrl);
+
+            try {
+                let requestOptions = {
+                    method: method,
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'user-id': 'demo-user'
+                    }
+                };
+
+                // Add sample body for POST/PUT requests
+                if (method === 'POST' || method === 'PUT') {
+                    if (endpoint.includes('/holdings')) {
+                        requestOptions.body = JSON.stringify({
+                            symbol: 'TSLA',
+                            quantity: 10,
+                            averagePrice: 250.00,
+                            purchaseDate: new Date().toISOString()
+                        });
+                    } else if (endpoint.includes('/watchlist')) {
+                        requestOptions.body = JSON.stringify({
+                            symbol: 'NVDA',
+                            notes: 'AI growth potential'
+                        });
+                    } else if (endpoint.includes('/portfolio') && !endpoint.includes('/')) {
+                        requestOptions.body = JSON.stringify({
+                            name: 'Test Portfolio',
+                            description: 'Created via API docs',
+                            initialCash: 10000
+                        });
+                    }
+                }
+
+                const response = await fetch(fullUrl, requestOptions);
+                const data = await response.json();
+
+                // Create a new window to display the JSON response
+                const newWindow = window.open('', '_blank', 'width=900,height=700');
+                newWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>API Response - ${method} ${endpoint}</title>
+                            <style>
+                                body {
+                                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                    padding: 20px;
+                                    background: #f5f5f5;
+                                    margin: 0;
+                                }
+                                .header {
+                                    background: ${response.ok ? '#4CAF50' : '#f44336'};
+                                    color: white;
+                                    padding: 20px;
+                                    border-radius: 8px;
+                                    margin-bottom: 20px;
+                                }
+                                .header h2 { margin: 0 0 10px 0; }
+                                .header p { margin: 5px 0; opacity: 0.9; }
+                                pre {
+                                    background: white;
+                                    padding: 20px;
+                                    border-radius: 8px;
+                                    overflow: auto;
+                                    border: 1px solid #ddd;
+                                    font-family: 'Courier New', monospace;
+                                    font-size: 14px;
+                                    line-height: 1.4;
+                                }
+                                .copy-btn {
+                                    background: #667eea;
+                                    color: white;
+                                    border: none;
+                                    padding: 10px 20px;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    margin-bottom: 10px;
+                                }
+                                .copy-btn:hover { background: #5a6fd8; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header">
+                                <h2>${method} ${endpoint}</h2>
+                                <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                                <p><strong>Content-Type:</strong> ${response.headers.get('content-type') || 'application/json'}</p>
+                                <p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
+                            </div>
+                            <button class="copy-btn" onclick="copyToClipboard()">📋 Copy Response</button>
+                            <pre id="response-data">${JSON.stringify(data, null, 2)}</pre>
+                            <script>
+                                function copyToClipboard() {
+                                    const responseData = document.getElementById('response-data').textContent;
+                                    navigator.clipboard.writeText(responseData).then(() => {
+                                        alert('Response copied to clipboard!');
+                                    });
+                                }
+                            </script>
+                        </body>
+                    </html>
+                `);
+            } catch (error) {
+                console.error('API Test Error:', error);
+
+                // Show error in a new window
+                const errorWindow = window.open('', '_blank', 'width=600,height=400');
+                const errorHtml = `
+                    <html>
+                        <head>
+                            <title>API Test Error</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+                                .error { background: #f44336; color: white; padding: 20px; border-radius: 8px; }
+                                .details { background: white; padding: 20px; border-radius: 8px; margin-top: 20px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="error">
+                                <h2>❌ API Test Failed</h2>
+                                <p><strong>Endpoint:</strong> ${method} ${endpoint}</p>
+                                <p><strong>Error:</strong> ${error.message || 'Unknown error occurred'}</p>
+                            </div>
+                            <div class="details">
+                                <h3>Possible Solutions:</h3>
+                                <ul>
+                                    <li>Make sure the Portfolio API server is running on port 3001</li>
+                                    <li>Check if CORS is properly configured</li>
+                                    <li>Verify the endpoint URL is correct</li>
+                                    <li>Check browser console for more details</li>
+                                </ul>
+                                <p><strong>Full URL:</strong> ${fullUrl}</p>
+                                <p><strong>Error Type:</strong> ${error.name || 'Error'}</p>
+                                <p><strong>Stack:</strong> ${error.stack || 'No stack trace available'}</p>
+                            </div>
+                        </body>
+                    </html>
+                `;
+                errorWindow.document.write(errorHtml);
+            } finally {
+                // Reset button
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function testConnection() {
+            try {
+                const response = await fetch('http://localhost:3001/', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                const data = await response.json();
+                alert('✅ Connection successful!\n\nServer: ' + data.name + '\nVersion: ' + data.version + '\nStatus: ' + data.status);
+            } catch (error) {
+                alert('❌ Connection failed!\n\nError: ' + error.message + '\n\nMake sure the Portfolio API server is running on port 3001.');
+                console.error('Connection test failed:', error);
+            }
+        }
+    </script>
+</body>
+</html>

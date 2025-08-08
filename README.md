@@ -63,8 +63,8 @@ curl http://localhost:3001/api/portfolio -H "user-id: demo-user"
 ## 📊 System Overview
 
 ### Backend - Trading API
-- **Technical Indicators**: RSI, Bollinger Bands, MFI, IMI, EMA, ATR
-- **Chart Patterns**: Cup & Handle pattern recognition
+- **Technical Indicators**: RSI, Bollinger Bands, MFI, IMI, EMA, ATR, MACD
+- **Chart Patterns**: Cup & Handle pattern recognition with confidence scoring
 - **Data Sources**: Mock data (default), Live APIs (optional)
 - **Analysis**: Comprehensive trading signals and strategies
 
@@ -92,11 +92,12 @@ GET /api/portfolio/:id/watchlist
 ## 📈 Features
 
 ### ✅ Backend Features
-- 6 Technical Indicators (RSI, Bollinger Bands, MFI, IMI, EMA, ATR)
+- 8 Technical Indicators (RSI, Bollinger Bands, MFI, IMI, EMA, ATR, MACD, Cup & Handle)
 - HTTP API with JSON responses
 - Command-line interface
 - Multiple data sources (mock, test data, live APIs)
 - Educational content and trading strategies
+- Chart pattern recognition with confidence scoring
 - Comprehensive documentation
 
 ### ✅ Portfolio Features
@@ -240,6 +241,12 @@ cd backend && npm run dev-server-simple
 
 # Get RSI analysis
 curl http://localhost:3000/api/rsi/AAPL/quick
+
+# Get MACD analysis
+curl http://localhost:3000/api/macd/AAPL/quick
+
+# Get Cup & Handle pattern analysis
+curl http://localhost:3000/api/cup-handle/AAPL/quick
 
 # Get comprehensive analysis
 curl http://localhost:3000/api/rsi/AAPL

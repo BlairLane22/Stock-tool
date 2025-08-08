@@ -27,4 +27,12 @@ router.get('/:id/watchlist', portfolioController.getWatchlist);
 router.post('/:id/watchlist', portfolioController.addToWatchlist);
 router.delete('/:id/watchlist/:symbol', portfolioController.removeFromWatchlist);
 
+// Trading analysis
+router.get('/:id/trading-decisions', portfolioController.getTradingDecisions);
+router.post('/analyze/stock/:symbol', portfolioController.analyzeStock);
+router.get('/analyze/stock/:symbol', portfolioController.analyzeStock); // GET version for browser
+router.post('/analyze/multiple', portfolioController.analyzeMultipleStocks);
+router.post('/analyze/popular', portfolioController.getPopularStocks);
+router.get('/analyze/popular', portfolioController.getPopularStocks); // GET version for browser
+
 export default router;

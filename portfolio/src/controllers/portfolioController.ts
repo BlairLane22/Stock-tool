@@ -1,13 +1,16 @@
 import { Request, Response } from 'express';
-import { PortfolioService } from '../services/portfolioService';
+import { DatabasePortfolioService } from '../services/databasePortfolioService';
+import { TradingService } from '../services/tradingService';
 import { BackendService } from '../services/backendService';
 
 export class PortfolioController {
-  private portfolioService: PortfolioService;
+  private portfolioService: DatabasePortfolioService;
+  private tradingService: TradingService;
   private backendService: BackendService;
 
   constructor() {
-    this.portfolioService = new PortfolioService();
+    this.portfolioService = new DatabasePortfolioService();
+    this.tradingService = new TradingService();
     this.backendService = new BackendService();
   }
 
@@ -409,6 +412,99 @@ export class PortfolioController {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to remove from watchlist'
+      });
+    }
+  };
+
+  // Trading analysis endpoints
+  analyzeStock = async (req: Request, res: Response) => {
+    try {
+      const { symbol } = req.params;
+
+      if (!symbol) {
+        return res.status(400).json({
+          success: false,
+          error: 'Symbol is required'
+        });
+      }
+
+      const analysis = await this.tradingService.analyzeStock(symbol.toUpperCase());
+
+      res.json({
+        success: true,
+        data: analysis
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to analyze stock'
+      });
+    }
+  };
+
+  analyzeMultipleStocks = async (req: Request, res: Response) => {
+    try {
+      const { symbols } = req.body;
+
+      if (!symbols || !Array.isArray(symbols)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Symbols array is required'
+        });
+      }
+
+      const analyses = await this.tradingService.analyzePortfolioOpportunities(
+        symbols.map((s: string) => s.toUpperCase())
+      );
+
+      res.json({
+        success: true,
+        data: analyses,
+        count: analyses.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to analyze stocks'
+      });
+    }
+  };
+
+  getPopularStocks = async (req: Request, res: Response) => {
+    try {
+      const symbols = this.tradingService.getPopularStocks();
+      const analyses = await this.tradingService.analyzePortfolioOpportunities(symbols);
+
+      res.json({
+        success: true,
+        data: analyses,
+        count: analyses.length,
+        message: 'Analysis of popular stocks completed'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to analyze popular stocks'
+      });
+    }
+  };
+
+  getTradingDecisions = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { limit = '10' } = req.query;
+
+      const decisions = await this.portfolioService.getTradingDecisions(id, parseInt(limit as string));
+
+      res.json({
+        success: true,
+        data: decisions,
+        count: decisions.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get trading decisions'
       });
     }
   };

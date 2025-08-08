@@ -29,13 +29,20 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:3001', // Allow requests from the same server (for docs page)
+    'http://127.0.0.1:3001'   // Alternative localhost format
+  ],
   credentials: true
 }));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve static files
+app.use('/docs', express.static('public'));
 
 // Logging middleware
 app.use(morgan('combined'));
@@ -56,7 +63,12 @@ app.get('/', (_req, res) => {
       auth: '/api/auth',
       portfolio: '/api/portfolio'
     },
-    documentation: 'https://github.com/stocktrack/portfolio-api'
+    documentation: {
+      interactive: '/docs/api-docs.html',
+      github: 'https://github.com/stocktrack/portfolio-api'
+    },
+    status: 'online',
+    timestamp: new Date().toISOString()
   });
 });
 
