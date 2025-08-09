@@ -23,5 +23,12 @@ export declare class PortfolioController {
     analyzeMultipleStocks: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
     getPopularStocks: (req: Request, res: Response) => Promise<void>;
     getTradingDecisions: (req: Request, res: Response) => Promise<void>;
+    getTradingStrategies: (req: Request, res: Response) => Promise<void>;
+    createTradingStrategy: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+    updateTradingStrategy: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+    deleteTradingStrategy: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+    assignStrategyToWatchlist: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+    assignStrategyToHolding: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+    analyzeWithStrategy: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 }
 //# sourceMappingURL=portfolioController.d.ts.map

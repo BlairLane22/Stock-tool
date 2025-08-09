@@ -35,4 +35,18 @@ router.post('/analyze/multiple', portfolioController.analyzeMultipleStocks);
 router.post('/analyze/popular', portfolioController.getPopularStocks);
 router.get('/analyze/popular', portfolioController.getPopularStocks); // GET version for browser
 
+// Trading strategies
+router.get('/:id/strategies', portfolioController.getTradingStrategies);
+router.post('/:id/strategies', portfolioController.createTradingStrategy);
+router.put('/strategies/:strategyId', portfolioController.updateTradingStrategy);
+router.delete('/strategies/:strategyId', portfolioController.deleteTradingStrategy);
+
+// Strategy assignments
+router.put('/:id/watchlist/:symbol/strategy', portfolioController.assignStrategyToWatchlist);
+router.put('/:id/holdings/:holdingId/strategy', portfolioController.assignStrategyToHolding);
+
+// Analyze with specific strategy
+router.get('/analyze/:symbol/strategy/:strategyId', portfolioController.analyzeWithStrategy);
+router.post('/analyze/:symbol/strategy/:strategyId', portfolioController.analyzeWithStrategy);
+
 export default router;

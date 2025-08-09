@@ -37,7 +37,9 @@ CREATE TABLE IF NOT EXISTS holdings (
     purchase_date TEXT NOT NULL,
     created_date TEXT NOT NULL DEFAULT (datetime('now')),
     updated_date TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE
+    trading_strategy_id TEXT,
+    FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE,
+    FOREIGN KEY (trading_strategy_id) REFERENCES trading_strategies(id) ON DELETE SET NULL
 );
 
 -- Watchlist table
@@ -49,8 +51,26 @@ CREATE TABLE IF NOT EXISTS watchlist (
     added_date TEXT NOT NULL DEFAULT (datetime('now')),
     target_price REAL,
     alert_enabled BOOLEAN DEFAULT 0,
+    trading_strategy_id TEXT,
     FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE,
+    FOREIGN KEY (trading_strategy_id) REFERENCES trading_strategies(id) ON DELETE SET NULL,
     UNIQUE(portfolio_id, symbol)
+);
+
+-- Trading strategies table (custom indicator combinations per stock)
+CREATE TABLE IF NOT EXISTS trading_strategies (
+    id TEXT PRIMARY KEY,
+    portfolio_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    indicators TEXT NOT NULL, -- JSON array of indicators: ["rsi", "bollinger-bands", "ema"]
+    buy_conditions TEXT, -- JSON object with buy conditions
+    sell_conditions TEXT, -- JSON object with sell conditions
+    risk_management TEXT, -- JSON object with stop loss, take profit rules
+    is_active BOOLEAN DEFAULT 1,
+    created_date TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_date TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE
 );
 
 -- Transactions table (for tracking all buy/sell activities)
@@ -115,8 +135,11 @@ CREATE TABLE IF NOT EXISTS portfolio_snapshots (
 CREATE INDEX IF NOT EXISTS idx_portfolios_user_id ON portfolios(user_id);
 CREATE INDEX IF NOT EXISTS idx_holdings_portfolio_id ON holdings(portfolio_id);
 CREATE INDEX IF NOT EXISTS idx_holdings_symbol ON holdings(symbol);
+CREATE INDEX IF NOT EXISTS idx_holdings_strategy ON holdings(trading_strategy_id);
 CREATE INDEX IF NOT EXISTS idx_watchlist_portfolio_id ON watchlist(portfolio_id);
 CREATE INDEX IF NOT EXISTS idx_watchlist_symbol ON watchlist(symbol);
+CREATE INDEX IF NOT EXISTS idx_watchlist_strategy ON watchlist(trading_strategy_id);
+CREATE INDEX IF NOT EXISTS idx_trading_strategies_portfolio_id ON trading_strategies(portfolio_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_portfolio_id ON transactions(portfolio_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_symbol ON transactions(symbol);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_date);
@@ -137,14 +160,68 @@ VALUES (
 );
 
 -- Insert empty portfolio for Blair
-INSERT OR IGNORE INTO portfolios (id, user_id, name, description, initial_cash, current_cash) 
+INSERT OR IGNORE INTO portfolios (id, user_id, name, description, initial_cash, current_cash)
 VALUES (
-    'portfolio-blair-main', 
-    'user-blair-1', 
-    'Blair''s Trading Account', 
-    'Main trading portfolio with AI-driven decisions', 
-    100000.00, 
+    'portfolio-blair-main',
+    'user-blair-1',
+    'Blair''s Trading Account',
+    'Main trading portfolio with AI-driven decisions',
+    100000.00,
     100000.00
+);
+
+-- Insert default trading strategies
+INSERT OR IGNORE INTO trading_strategies (id, portfolio_id, name, description, indicators, buy_conditions, sell_conditions, risk_management)
+VALUES
+(
+    'strategy-bollinger-only',
+    'portfolio-blair-main',
+    'Bollinger Bands Only',
+    'Pure Bollinger Bands strategy - buy at lower band, sell at upper band',
+    '["bollinger-bands"]',
+    '{"bollinger_signal": "BUY", "price_position": "near_lower_band"}',
+    '{"bollinger_signal": "SELL", "price_position": "near_upper_band"}',
+    '{"stop_loss_percent": 5, "take_profit_percent": 10}'
+),
+(
+    'strategy-rsi-ema',
+    'portfolio-blair-main',
+    'RSI + EMA Combo',
+    'RSI oversold/overbought with EMA trend confirmation',
+    '["rsi", "ema"]',
+    '{"rsi_below": 30, "ema_trend": "bullish"}',
+    '{"rsi_above": 70, "ema_trend": "bearish"}',
+    '{"stop_loss_percent": 7, "take_profit_percent": 15}'
+),
+(
+    'strategy-macd-rsi',
+    'portfolio-blair-main',
+    'MACD + RSI Power',
+    'MACD crossover signals with RSI confirmation',
+    '["macd", "rsi"]',
+    '{"macd_signal": "BUY", "rsi_below": 50}',
+    '{"macd_signal": "SELL", "rsi_above": 50}',
+    '{"stop_loss_percent": 6, "take_profit_percent": 12}'
+),
+(
+    'strategy-pattern-focus',
+    'portfolio-blair-main',
+    'Chart Patterns Only',
+    'Focus on Head & Shoulders and Cup & Handle patterns',
+    '["head-and-shoulders", "cup-handle"]',
+    '{"cup_handle_signal": "BUY", "confidence": "HIGH"}',
+    '{"head_shoulders_signal": "SELL", "confidence": "HIGH"}',
+    '{"stop_loss_percent": 8, "take_profit_percent": 20}'
+),
+(
+    'strategy-all-indicators',
+    'portfolio-blair-main',
+    'Full Analysis',
+    'Use all available indicators for comprehensive analysis',
+    '["rsi", "macd", "bollinger-bands", "head-and-shoulders", "cup-handle"]',
+    '{"min_buy_signals": 3, "confidence": "MEDIUM"}',
+    '{"min_sell_signals": 3, "confidence": "MEDIUM"}',
+    '{"stop_loss_percent": 5, "take_profit_percent": 10}'
 );
 
 -- Create triggers to automatically update timestamps

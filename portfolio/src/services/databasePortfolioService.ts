@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { query, queryOne, execute, transaction } from '../database/connection';
-import { Portfolio, Holding, WatchlistItem, User } from '../types/portfolio';
+import { Portfolio, Holding, WatchlistItem, User, TradingStrategy } from '../types/portfolio';
 
 export interface TradingDecision {
   id: string;
@@ -190,7 +190,11 @@ export class DatabasePortfolioService {
    */
   async getHoldings(portfolioId: string): Promise<Holding[]> {
     const holdings = await query<any>(
-      'SELECT * FROM holdings WHERE portfolio_id = ? ORDER BY symbol',
+      `SELECT h.*, ts.name as strategy_name, ts.description as strategy_description, ts.indicators as strategy_indicators
+       FROM holdings h
+       LEFT JOIN trading_strategies ts ON h.trading_strategy_id = ts.id
+       WHERE h.portfolio_id = ?
+       ORDER BY h.symbol`,
       [portfolioId]
     );
 
@@ -199,7 +203,21 @@ export class DatabasePortfolioService {
       symbol: holding.symbol,
       quantity: holding.quantity,
       averagePrice: holding.average_price,
-      purchaseDate: holding.purchase_date
+      purchaseDate: holding.purchase_date,
+      tradingStrategyId: holding.trading_strategy_id,
+      tradingStrategy: holding.strategy_name ? {
+        id: holding.trading_strategy_id,
+        portfolioId: portfolioId,
+        name: holding.strategy_name,
+        description: holding.strategy_description,
+        indicators: holding.strategy_indicators ? JSON.parse(holding.strategy_indicators) : [],
+        buyConditions: {},
+        sellConditions: {},
+        riskManagement: {},
+        isActive: true,
+        createdDate: '',
+        updatedDate: ''
+      } : undefined
     }));
   }
 
@@ -311,7 +329,11 @@ export class DatabasePortfolioService {
    */
   async getWatchlist(portfolioId: string): Promise<WatchlistItem[]> {
     const watchlist = await query<any>(
-      'SELECT * FROM watchlist WHERE portfolio_id = ? ORDER BY added_date DESC',
+      `SELECT w.*, ts.name as strategy_name, ts.description as strategy_description, ts.indicators as strategy_indicators
+       FROM watchlist w
+       LEFT JOIN trading_strategies ts ON w.trading_strategy_id = ts.id
+       WHERE w.portfolio_id = ?
+       ORDER BY w.added_date DESC`,
       [portfolioId]
     );
 
@@ -319,7 +341,21 @@ export class DatabasePortfolioService {
       id: item.id,
       symbol: item.symbol,
       notes: item.notes,
-      addedDate: item.added_date
+      addedDate: item.added_date,
+      tradingStrategyId: item.trading_strategy_id,
+      tradingStrategy: item.strategy_name ? {
+        id: item.trading_strategy_id,
+        portfolioId: portfolioId,
+        name: item.strategy_name,
+        description: item.strategy_description,
+        indicators: item.strategy_indicators ? JSON.parse(item.strategy_indicators) : [],
+        buyConditions: {},
+        sellConditions: {},
+        riskManagement: {},
+        isActive: true,
+        createdDate: '',
+        updatedDate: ''
+      } : undefined
     }));
   }
 
@@ -566,5 +602,172 @@ export class DatabasePortfolioService {
       executed: decision.executed,
       executedDate: decision.executed_date
     }));
+  }
+
+  /**
+   * Get all trading strategies for a portfolio
+   */
+  async getTradingStrategies(portfolioId: string): Promise<TradingStrategy[]> {
+    const strategies = await query<any>(
+      'SELECT * FROM trading_strategies WHERE portfolio_id = ? AND is_active = 1 ORDER BY name',
+      [portfolioId]
+    );
+
+    return strategies.map(strategy => ({
+      id: strategy.id,
+      portfolioId: strategy.portfolio_id,
+      name: strategy.name,
+      description: strategy.description,
+      indicators: JSON.parse(strategy.indicators),
+      buyConditions: JSON.parse(strategy.buy_conditions),
+      sellConditions: JSON.parse(strategy.sell_conditions),
+      riskManagement: JSON.parse(strategy.risk_management),
+      isActive: strategy.is_active,
+      createdDate: strategy.created_date,
+      updatedDate: strategy.updated_date
+    }));
+  }
+
+  /**
+   * Get a specific trading strategy
+   */
+  async getTradingStrategy(id: string): Promise<TradingStrategy | null> {
+    const strategy = await queryOne<any>(
+      'SELECT * FROM trading_strategies WHERE id = ? AND is_active = 1',
+      [id]
+    );
+
+    if (!strategy) return null;
+
+    return {
+      id: strategy.id,
+      portfolioId: strategy.portfolio_id,
+      name: strategy.name,
+      description: strategy.description,
+      indicators: JSON.parse(strategy.indicators),
+      buyConditions: JSON.parse(strategy.buy_conditions),
+      sellConditions: JSON.parse(strategy.sell_conditions),
+      riskManagement: JSON.parse(strategy.risk_management),
+      isActive: strategy.is_active,
+      createdDate: strategy.created_date,
+      updatedDate: strategy.updated_date
+    };
+  }
+
+  /**
+   * Create a new trading strategy
+   */
+  async createTradingStrategy(data: {
+    portfolioId: string;
+    name: string;
+    description?: string;
+    indicators: string[];
+    buyConditions: any;
+    sellConditions: any;
+    riskManagement: any;
+  }): Promise<TradingStrategy> {
+    const strategyId = uuidv4();
+
+    await execute(
+      `INSERT INTO trading_strategies (id, portfolio_id, name, description, indicators, buy_conditions, sell_conditions, risk_management)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        strategyId,
+        data.portfolioId,
+        data.name,
+        data.description,
+        JSON.stringify(data.indicators),
+        JSON.stringify(data.buyConditions),
+        JSON.stringify(data.sellConditions),
+        JSON.stringify(data.riskManagement)
+      ]
+    );
+
+    const strategy = await this.getTradingStrategy(strategyId);
+    if (!strategy) throw new Error('Failed to create trading strategy');
+    return strategy;
+  }
+
+  /**
+   * Update a trading strategy
+   */
+  async updateTradingStrategy(id: string, updates: Partial<TradingStrategy>): Promise<TradingStrategy | null> {
+    const setClause = [];
+    const params = [];
+
+    if (updates.name) {
+      setClause.push('name = ?');
+      params.push(updates.name);
+    }
+    if (updates.description !== undefined) {
+      setClause.push('description = ?');
+      params.push(updates.description);
+    }
+    if (updates.indicators) {
+      setClause.push('indicators = ?');
+      params.push(JSON.stringify(updates.indicators));
+    }
+    if (updates.buyConditions) {
+      setClause.push('buy_conditions = ?');
+      params.push(JSON.stringify(updates.buyConditions));
+    }
+    if (updates.sellConditions) {
+      setClause.push('sell_conditions = ?');
+      params.push(JSON.stringify(updates.sellConditions));
+    }
+    if (updates.riskManagement) {
+      setClause.push('risk_management = ?');
+      params.push(JSON.stringify(updates.riskManagement));
+    }
+    if (updates.isActive !== undefined) {
+      setClause.push('is_active = ?');
+      params.push(updates.isActive);
+    }
+
+    if (setClause.length === 0) {
+      return this.getTradingStrategy(id);
+    }
+
+    params.push(id);
+
+    await execute(
+      `UPDATE trading_strategies SET ${setClause.join(', ')}, updated_date = datetime('now') WHERE id = ?`,
+      params
+    );
+
+    return this.getTradingStrategy(id);
+  }
+
+  /**
+   * Delete a trading strategy
+   */
+  async deleteTradingStrategy(id: string): Promise<boolean> {
+    const result = await execute(
+      'UPDATE trading_strategies SET is_active = 0 WHERE id = ?',
+      [id]
+    );
+    return result.changes > 0;
+  }
+
+  /**
+   * Assign trading strategy to watchlist item
+   */
+  async assignStrategyToWatchlist(portfolioId: string, symbol: string, strategyId: string): Promise<boolean> {
+    const result = await execute(
+      'UPDATE watchlist SET trading_strategy_id = ? WHERE portfolio_id = ? AND symbol = ?',
+      [strategyId, portfolioId, symbol.toUpperCase()]
+    );
+    return result.changes > 0;
+  }
+
+  /**
+   * Assign trading strategy to holding
+   */
+  async assignStrategyToHolding(portfolioId: string, holdingId: string, strategyId: string): Promise<boolean> {
+    const result = await execute(
+      'UPDATE holdings SET trading_strategy_id = ? WHERE id = ? AND portfolio_id = ?',
+      [strategyId, holdingId, portfolioId]
+    );
+    return result.changes > 0;
   }
 }

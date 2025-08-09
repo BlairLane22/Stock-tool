@@ -11,24 +11,30 @@ class TradingService {
         this.portfolioService = new databasePortfolioService_1.DatabasePortfolioService();
         this.backendApiUrl = process.env.BACKEND_API_URL || 'http://localhost:3000';
     }
-    async analyzeStock(symbol) {
+    async analyzeStock(symbol, strategyId) {
         console.log(`🔍 Analyzing ${symbol} for trading opportunities...`);
         try {
-            const [rsiData, macdData, bollingerData, headShouldersData, cupHandleData] = await Promise.allSettled([
-                this.getIndicator('rsi', symbol),
-                this.getIndicator('macd', symbol),
-                this.getIndicator('bollinger-bands', symbol),
-                this.getIndicator('head-and-shoulders', symbol),
-                this.getIndicator('cup-handle', symbol)
-            ]);
-            const indicators = {
-                rsi: rsiData.status === 'fulfilled' ? rsiData.value : null,
-                macd: macdData.status === 'fulfilled' ? macdData.value : null,
-                bollingerBands: bollingerData.status === 'fulfilled' ? bollingerData.value : null,
-                headAndShoulders: headShouldersData.status === 'fulfilled' ? headShouldersData.value : null,
-                cupAndHandle: cupHandleData.status === 'fulfilled' ? cupHandleData.value : null
-            };
-            const analysis = this.makeDecision(symbol, indicators);
+            let indicatorsToFetch = ['rsi', 'macd', 'bollinger-bands', 'head-and-shoulders', 'cup-handle'];
+            let strategy = null;
+            if (strategyId) {
+                strategy = await this.portfolioService.getTradingStrategy(strategyId);
+                if (strategy) {
+                    indicatorsToFetch = strategy.indicators;
+                    console.log(`📋 Using strategy "${strategy.name}" with indicators: ${indicatorsToFetch.join(', ')}`);
+                }
+            }
+            const indicatorPromises = indicatorsToFetch.map(indicator => this.getIndicator(indicator, symbol).catch(error => {
+                console.warn(`⚠️ Failed to fetch ${indicator} for ${symbol}:`, error.message);
+                return null;
+            }));
+            const indicatorResults = await Promise.all(indicatorPromises);
+            const indicators = {};
+            indicatorsToFetch.forEach((indicator, index) => {
+                indicators[this.mapIndicatorName(indicator)] = indicatorResults[index];
+            });
+            const analysis = strategy
+                ? this.makeStrategyDecision(symbol, indicators, strategy)
+                : this.makeDecision(symbol, indicators);
             console.log(`📊 Analysis complete for ${symbol}: ${analysis.recommendation} (${analysis.confidence})`);
             return analysis;
         }
@@ -45,6 +51,17 @@ class TradingService {
             };
         }
     }
+    mapIndicatorName(indicator) {
+        const mapping = {
+            'rsi': 'rsi',
+            'macd': 'macd',
+            'bollinger-bands': 'bollingerBands',
+            'head-and-shoulders': 'headAndShoulders',
+            'cup-handle': 'cupAndHandle',
+            'ema': 'ema'
+        };
+        return mapping[indicator] || indicator;
+    }
     async getIndicator(indicator, symbol) {
         const url = `${this.backendApiUrl}/api/${indicator}/${symbol}/quick`;
         console.log(`📡 Fetching ${indicator} for ${symbol}...`);
@@ -55,6 +72,126 @@ class TradingService {
             }
         });
         return response.data;
+    }
+    makeStrategyDecision(symbol, indicators, strategy) {
+        const reasoning = [];
+        let buySignals = 0;
+        let sellSignals = 0;
+        let confidence = 'LOW';
+        let currentPrice = 0;
+        let targetPrice;
+        let stopLoss;
+        let riskReward;
+        reasoning.push(`🎯 Using strategy: "${strategy.name}"`);
+        reasoning.push(`📊 Indicators: ${strategy.indicators.join(', ')}`);
+        for (const indicatorName of strategy.indicators) {
+            const mappedName = this.mapIndicatorName(indicatorName);
+            const indicatorData = indicators[mappedName];
+            if (!indicatorData) {
+                reasoning.push(`⚠️ ${indicatorName.toUpperCase()} data unavailable`);
+                continue;
+            }
+            currentPrice = indicatorData.price || currentPrice;
+            if (indicatorName === 'rsi' && indicatorData.rsi) {
+                const rsi = indicatorData.rsi;
+                if (rsi < 30) {
+                    buySignals++;
+                    reasoning.push(`🟢 RSI oversold (${rsi.toFixed(1)}) - buy signal`);
+                }
+                else if (rsi > 70) {
+                    sellSignals++;
+                    reasoning.push(`🔴 RSI overbought (${rsi.toFixed(1)}) - sell signal`);
+                }
+                else {
+                    reasoning.push(`⚪ RSI neutral (${rsi.toFixed(1)})`);
+                }
+            }
+            if (indicatorName === 'macd' && indicatorData.signal) {
+                if (indicatorData.signal === 'BUY') {
+                    buySignals++;
+                    reasoning.push(`🟢 MACD bullish signal`);
+                }
+                else if (indicatorData.signal === 'SELL') {
+                    sellSignals++;
+                    reasoning.push(`🔴 MACD bearish signal`);
+                }
+                else {
+                    reasoning.push(`⚪ MACD neutral`);
+                }
+            }
+            if (indicatorName === 'bollinger-bands' && indicatorData.signal) {
+                if (indicatorData.signal === 'BUY') {
+                    buySignals++;
+                    reasoning.push(`🟢 Bollinger Bands buy signal`);
+                }
+                else if (indicatorData.signal === 'SELL') {
+                    sellSignals++;
+                    reasoning.push(`🔴 Bollinger Bands sell signal`);
+                }
+            }
+            if (indicatorName === 'head-and-shoulders' && indicatorData.isPattern) {
+                if (indicatorData.signal === 'SELL' && indicatorData.confidence === 'HIGH') {
+                    sellSignals += 2;
+                    reasoning.push(`🔴 Head & Shoulders pattern - strong bearish signal`);
+                    targetPrice = indicatorData.targetPrice;
+                    stopLoss = indicatorData.stopLoss;
+                    riskReward = indicatorData.riskReward;
+                }
+            }
+            if (indicatorName === 'cup-handle' && indicatorData.patternDetected) {
+                if (indicatorData.signal === 'BUY' && indicatorData.confidence === 'HIGH') {
+                    buySignals += 2;
+                    reasoning.push(`🟢 Cup & Handle pattern - strong bullish signal`);
+                    targetPrice = indicatorData.targetPrice;
+                    stopLoss = indicatorData.stopLoss;
+                }
+            }
+        }
+        const buyConditions = strategy.buyConditions;
+        const sellConditions = strategy.sellConditions;
+        let recommendation = 'HOLD';
+        if (buyConditions.min_buy_signals && buySignals >= buyConditions.min_buy_signals) {
+            recommendation = 'BUY';
+            confidence = buySignals >= 3 ? 'HIGH' : 'MEDIUM';
+        }
+        else if (sellConditions.min_sell_signals && sellSignals >= sellConditions.min_sell_signals) {
+            recommendation = 'SELL';
+            confidence = sellSignals >= 3 ? 'HIGH' : 'MEDIUM';
+        }
+        else if (buySignals > sellSignals && buySignals > 0) {
+            recommendation = 'WATCH';
+            reasoning.push(`⚪ Weak buy signals - watching for better entry`);
+        }
+        else if (sellSignals > buySignals && sellSignals > 0) {
+            recommendation = 'WATCH';
+            reasoning.push(`⚪ Weak sell signals - watching for confirmation`);
+        }
+        const riskMgmt = strategy.riskManagement;
+        if (riskMgmt && currentPrice > 0) {
+            if (!stopLoss && riskMgmt.stop_loss_percent) {
+                stopLoss = recommendation === 'BUY'
+                    ? currentPrice * (1 - riskMgmt.stop_loss_percent / 100)
+                    : currentPrice * (1 + riskMgmt.stop_loss_percent / 100);
+            }
+            if (!targetPrice && riskMgmt.take_profit_percent) {
+                targetPrice = recommendation === 'BUY'
+                    ? currentPrice * (1 + riskMgmt.take_profit_percent / 100)
+                    : currentPrice * (1 - riskMgmt.take_profit_percent / 100);
+            }
+        }
+        const recommendedQuantity = this.calculatePositionSize(currentPrice, recommendation, confidence);
+        return {
+            symbol,
+            currentPrice,
+            recommendation,
+            confidence,
+            reasoning,
+            indicators,
+            targetPrice,
+            stopLoss,
+            recommendedQuantity,
+            riskReward
+        };
     }
     makeDecision(symbol, indicators) {
         const reasoning = [];

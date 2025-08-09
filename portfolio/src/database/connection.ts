@@ -30,6 +30,12 @@ export async function getDatabase(): Promise<Database<sqlite3.Database, sqlite3.
     // Enable foreign keys
     await db.exec('PRAGMA foreign_keys = ON');
     
+    // Enable WAL mode for better concurrency and reliability
+    await db.exec('PRAGMA journal_mode = WAL');
+    
+    // Set synchronous mode for data safety
+    await db.exec('PRAGMA synchronous = NORMAL');
+    
     console.log(`📊 Database connected: ${dbPath}`);
     
     // Initialize schema

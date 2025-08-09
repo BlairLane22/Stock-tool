@@ -16,12 +16,29 @@ export interface Holding {
     quantity: number;
     averagePrice: number;
     purchaseDate: string;
+    tradingStrategyId?: string;
+    tradingStrategy?: TradingStrategy;
 }
 export interface WatchlistItem {
     id: string;
     symbol: string;
     notes?: string;
     addedDate: string;
+    tradingStrategyId?: string;
+    tradingStrategy?: TradingStrategy;
+}
+export interface TradingStrategy {
+    id: string;
+    portfolioId: string;
+    name: string;
+    description?: string;
+    indicators: string[];
+    buyConditions: any;
+    sellConditions: any;
+    riskManagement: any;
+    isActive: boolean;
+    createdDate: string;
+    updatedDate: string;
 }
 export interface User {
     id: string;

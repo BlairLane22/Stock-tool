@@ -20,8 +20,10 @@ export declare class TradingService {
     private portfolioService;
     private backendApiUrl;
     constructor();
-    analyzeStock(symbol: string): Promise<TradingAnalysis>;
+    analyzeStock(symbol: string, strategyId?: string): Promise<TradingAnalysis>;
+    private mapIndicatorName;
     private getIndicator;
+    private makeStrategyDecision;
     private makeDecision;
     private calculatePositionSize;
     analyzePortfolioOpportunities(symbols: string[]): Promise<TradingAnalysis[]>;
