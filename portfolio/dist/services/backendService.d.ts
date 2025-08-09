@@ -14,6 +14,20 @@ export declare class BackendService {
     getQuickATR(symbol: string): Promise<any>;
     getQuickIMI(symbol: string): Promise<any>;
     getMultiIndicatorAnalysis(symbols: string[]): Promise<any[]>;
+    getOptimizedMultiIndicatorAnalysis(symbol: string, indicators: Array<{
+        type: string;
+        params?: any;
+    }>, useMockData?: boolean): Promise<any>;
+    getBatchOptimizedAnalysis(symbols: string[], indicators: Array<{
+        type: string;
+        params?: any;
+    }>, useMockData?: boolean): Promise<any[]>;
     getBatchQuotes(symbols: string[]): Promise<any[]>;
+    getCacheStats(): Promise<any>;
+    clearCache(symbol?: string): Promise<any>;
+    convertStrategyIndicators(strategyIndicators: string[]): Array<{
+        type: string;
+        params?: any;
+    }>;
 }
 //# sourceMappingURL=backendService.d.ts.map

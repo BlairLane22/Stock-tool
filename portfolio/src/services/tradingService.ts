@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { DatabasePortfolioService } from './databasePortfolioService';
+import { BackendService } from './backendService';
 
 export interface TradingAnalysis {
   symbol: string;
@@ -22,10 +23,12 @@ export interface TradingAnalysis {
 
 export class TradingService {
   private portfolioService: DatabasePortfolioService;
+  private backendService: BackendService;
   private backendApiUrl: string;
 
   constructor() {
     this.portfolioService = new DatabasePortfolioService();
+    this.backendService = new BackendService();
     this.backendApiUrl = process.env.BACKEND_API_URL || 'http://localhost:3000';
   }
 
@@ -48,21 +51,29 @@ export class TradingService {
         }
       }
 
-      // Fetch only the required indicators
-      const indicatorPromises = indicatorsToFetch.map(indicator =>
-        this.getIndicator(indicator, symbol).catch(error => {
-          console.warn(`⚠️ Failed to fetch ${indicator} for ${symbol}:`, error.message);
-          return null;
-        })
+      // OPTIMIZED: Fetch all indicators in a single API call
+      console.log(`🚀 Using optimized multi-indicator analysis for ${symbol}`);
+
+      const backendIndicators = this.backendService.convertStrategyIndicators(indicatorsToFetch);
+      const multiIndicatorResult = await this.backendService.getOptimizedMultiIndicatorAnalysis(
+        symbol,
+        backendIndicators,
+        true // Use mock data for now
       );
 
-      const indicatorResults = await Promise.all(indicatorPromises);
-
-      // Map results to indicator names
+      // Map results to indicator names for compatibility
       const indicators: any = {};
-      indicatorsToFetch.forEach((indicator, index) => {
-        indicators[this.mapIndicatorName(indicator)] = indicatorResults[index];
-      });
+      if (multiIndicatorResult.indicators) {
+        Object.keys(multiIndicatorResult.indicators).forEach(key => {
+          const mappedName = this.mapBackendIndicatorName(key);
+          indicators[mappedName] = multiIndicatorResult.indicators[key];
+        });
+      }
+
+      // Handle any errors from the multi-indicator call
+      if (multiIndicatorResult.errors && Object.keys(multiIndicatorResult.errors).length > 0) {
+        console.warn(`⚠️ Some indicators failed for ${symbol}:`, multiIndicatorResult.errors);
+      }
 
       // Make trading decision based on indicators and strategy
       const analysis = strategy
@@ -104,19 +115,38 @@ export class TradingService {
   }
 
   /**
-   * Get indicator data from backend API
+   * Map backend multi-indicator response keys to analysis object keys
    */
-  private async getIndicator(indicator: string, symbol: string): Promise<any> {
+  private mapBackendIndicatorName(backendKey: string): string {
+    const mapping: { [key: string]: string } = {
+      'rsi': 'rsi',
+      'macd': 'macd',
+      'bollinger': 'bollingerBands',
+      'head-shoulders': 'headAndShoulders',
+      'cup-handle': 'cupAndHandle',
+      'ema': 'ema',
+      'atr': 'atr',
+      'mfi': 'mfi',
+      'imi': 'imi'
+    };
+    return mapping[backendKey] || backendKey;
+  }
+
+  /**
+   * LEGACY: Get indicator data from backend API (replaced by optimized multi-indicator)
+   * Kept for fallback purposes
+   */
+  private async getIndicatorLegacy(indicator: string, symbol: string): Promise<any> {
     const url = `${this.backendApiUrl}/api/${indicator}/${symbol}/quick`;
-    console.log(`📡 Fetching ${indicator} for ${symbol}...`);
-    
+    console.log(`📡 [LEGACY] Fetching ${indicator} for ${symbol}...`);
+
     const response = await axios.get(url, {
       timeout: 10000,
       headers: {
         'User-Agent': 'StockTrack-Portfolio-API/1.0.0'
       }
     });
-    
+
     return response.data;
   }
 
@@ -149,28 +179,39 @@ export class TradingService {
       currentPrice = indicatorData.price || currentPrice;
 
       // Analyze based on indicator type
-      if (indicatorName === 'rsi' && indicatorData.rsi) {
-        const rsi = indicatorData.rsi;
-        if (rsi < 30) {
-          buySignals++;
-          reasoning.push(`🟢 RSI oversold (${rsi.toFixed(1)}) - buy signal`);
-        } else if (rsi > 70) {
-          sellSignals++;
-          reasoning.push(`🔴 RSI overbought (${rsi.toFixed(1)}) - sell signal`);
+      if (indicatorName === 'rsi' && indicatorData) {
+        // Handle both old format (rsi.rsi) and new format (rsi.rsi.current)
+        const rsi = indicatorData.rsi?.current || indicatorData.rsi?.rsi?.current || indicatorData.rsi;
+        if (typeof rsi === 'number') {
+          if (rsi < 30) {
+            buySignals++;
+            reasoning.push(`🟢 RSI oversold (${rsi.toFixed(1)}) - buy signal`);
+          } else if (rsi > 70) {
+            sellSignals++;
+            reasoning.push(`🔴 RSI overbought (${rsi.toFixed(1)}) - sell signal`);
+          } else {
+            reasoning.push(`⚪ RSI neutral (${rsi.toFixed(1)})`);
+          }
         } else {
-          reasoning.push(`⚪ RSI neutral (${rsi.toFixed(1)})`);
+          reasoning.push(`⚠️ RSI data format issue`);
         }
       }
 
-      if (indicatorName === 'macd' && indicatorData.signal) {
-        if (indicatorData.signal === 'BUY') {
-          buySignals++;
-          reasoning.push(`🟢 MACD bullish signal`);
-        } else if (indicatorData.signal === 'SELL') {
-          sellSignals++;
-          reasoning.push(`🔴 MACD bearish signal`);
+      if (indicatorName === 'macd' && indicatorData) {
+        // Handle both old format (macd.signal) and new format (macd.macd.signal)
+        const signal = indicatorData.signal || indicatorData.macd?.signal;
+        if (signal) {
+          if (signal === 'BUY') {
+            buySignals++;
+            reasoning.push(`🟢 MACD bullish signal`);
+          } else if (signal === 'SELL') {
+            sellSignals++;
+            reasoning.push(`🔴 MACD bearish signal`);
+          } else {
+            reasoning.push(`⚪ MACD neutral`);
+          }
         } else {
-          reasoning.push(`⚪ MACD neutral`);
+          reasoning.push(`⚠️ MACD data format issue`);
         }
       }
 
@@ -272,16 +313,21 @@ export class TradingService {
     // RSI Analysis
     if (indicators.rsi) {
       currentPrice = indicators.rsi.price || currentPrice;
-      const rsi = indicators.rsi.rsi;
-      
-      if (rsi < 30) {
-        buySignals++;
-        reasoning.push(`🟢 RSI oversold (${rsi.toFixed(1)}) - potential buy opportunity`);
-      } else if (rsi > 70) {
-        sellSignals++;
-        reasoning.push(`🔴 RSI overbought (${rsi.toFixed(1)}) - potential sell signal`);
+      // Handle both old format (rsi.rsi) and new format (rsi.rsi.current)
+      const rsi = indicators.rsi.rsi?.current || indicators.rsi.rsi;
+
+      if (typeof rsi === 'number') {
+        if (rsi < 30) {
+          buySignals++;
+          reasoning.push(`🟢 RSI oversold (${rsi.toFixed(1)}) - potential buy opportunity`);
+        } else if (rsi > 70) {
+          sellSignals++;
+          reasoning.push(`🔴 RSI overbought (${rsi.toFixed(1)}) - potential sell signal`);
+        } else {
+          reasoning.push(`⚪ RSI neutral (${rsi.toFixed(1)})`);
+        }
       } else {
-        reasoning.push(`⚪ RSI neutral (${rsi.toFixed(1)})`);
+        reasoning.push(`⚠️ RSI data format issue`);
       }
     }
 

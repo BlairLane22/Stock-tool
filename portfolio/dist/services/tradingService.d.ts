@@ -18,11 +18,13 @@ export interface TradingAnalysis {
 }
 export declare class TradingService {
     private portfolioService;
+    private backendService;
     private backendApiUrl;
     constructor();
     analyzeStock(symbol: string, strategyId?: string): Promise<TradingAnalysis>;
     private mapIndicatorName;
-    private getIndicator;
+    private mapBackendIndicatorName;
+    private getIndicatorLegacy;
     private makeStrategyDecision;
     private makeDecision;
     private calculatePositionSize;

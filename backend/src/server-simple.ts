@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
+import { multiIndicatorAnalysis, IndicatorRequest } from './services/multiIndicatorAnalysis';
+import { candleCache } from './services/candleCache';
 
 // Load environment variables from variables.env
 dotenv.config({
@@ -1590,6 +1592,107 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
+// Multi-Indicator Analysis endpoint - fetch candles once, calculate multiple indicators
+app.post('/api/analyze/:symbol/multi', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { mock = 'true' } = req.query;
+    const { indicators } = req.body;
+
+    if (!indicators || !Array.isArray(indicators)) {
+      return res.status(400).json({
+        error: 'Missing or invalid indicators array in request body',
+        example: {
+          indicators: [
+            { type: 'rsi', params: { period: 14 } },
+            { type: 'macd', params: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 } },
+            { type: 'bollinger', params: { period: 20, multiplier: 2 } }
+          ]
+        }
+      });
+    }
+
+    console.log(`\n🎯 MULTI-INDICATOR ANALYSIS:`);
+    console.log(`   📊 Symbol: ${symbol.toUpperCase()}`);
+    console.log(`   📈 Indicators: ${indicators.map(i => i.type).join(', ')}`);
+    console.log(`   💾 Data Mode: ${mock === 'false' ? 'Live API' : 'Mock Data'}`);
+
+    const startTime = Date.now();
+    const result = await multiIndicatorAnalysis.analyzeMultipleIndicators(
+      symbol,
+      indicators as IndicatorRequest[],
+      mock !== 'false'
+    );
+    const responseTime = Date.now() - startTime;
+
+    console.log(`   ✅ Analysis complete: ${Object.keys(result.indicators).length} indicators calculated`);
+    console.log(`   📊 Candles used: ${result.candleCount}`);
+    console.log(`   ⏰ Response Time: ${responseTime}ms`);
+
+    if (Object.keys(result.errors).length > 0) {
+      console.log(`   ⚠️  Errors: ${Object.keys(result.errors).join(', ')}`);
+    }
+
+    res.json(result);
+    return;
+
+  } catch (error) {
+    console.error('❌ Multi-indicator analysis error:', error);
+    res.status(500).json({
+      error: 'Multi-indicator analysis failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+    return;
+  }
+});
+
+// Cache management endpoints
+app.get('/api/cache/stats', (req, res) => {
+  try {
+    const stats = candleCache.getCacheStats();
+    res.json({
+      success: true,
+      cache: stats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.delete('/api/cache/:symbol', (req, res) => {
+  try {
+    const { symbol } = req.params;
+    candleCache.clearCache(symbol);
+    res.json({
+      success: true,
+      message: `Cache cleared for ${symbol.toUpperCase()}`
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.delete('/api/cache', (req, res) => {
+  try {
+    candleCache.clearAllCache();
+    res.json({
+      success: true,
+      message: 'All cache cleared'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
@@ -1627,8 +1730,13 @@ app.listen(PORT, () => {
   console.log(`\n🎯 CHART PATTERNS:`);
   console.log(`   🏆 Cup & Handle: http://localhost:${PORT}/api/cup-handle/AAPL/quick`);
   console.log(`   📉 Head & Shoulders: http://localhost:${PORT}/api/head-and-shoulders/AAPL/quick`);
+  console.log(`\n🚀 MULTI-INDICATOR ANALYSIS (NEW!):`);
+  console.log(`   📊 Multiple Indicators: POST http://localhost:${PORT}/api/analyze/AAPL/multi`);
+  console.log(`   📦 Cache Stats: GET http://localhost:${PORT}/api/cache/stats`);
+  console.log(`   🗑️  Clear Cache: DELETE http://localhost:${PORT}/api/cache/AAPL`);
   console.log(`\n💡 TIP: Replace 'AAPL' with any stock symbol (TSLA, NVDA, MSFT, etc.)`);
   console.log(`💡 TIP: Add '?mock=false' to use live API data (requires API keys)`);
+  console.log(`💡 TIP: Use multi-indicator endpoint to reduce API calls!`);
   console.log('='.repeat(80));
 });
 
