@@ -13,7 +13,7 @@ class TradingService {
         this.backendService = new backendService_1.BackendService();
         this.backendApiUrl = process.env.BACKEND_API_URL || 'http://localhost:3000';
     }
-    async analyzeStock(symbol, strategyId) {
+    async analyzeStock(symbol, strategyId, useMockData = true) {
         console.log(`🔍 Analyzing ${symbol} for trading opportunities...`);
         try {
             let indicatorsToFetch = ['rsi', 'macd', 'bollinger-bands', 'head-and-shoulders', 'cup-handle'];
@@ -27,7 +27,7 @@ class TradingService {
             }
             console.log(`🚀 Using optimized multi-indicator analysis for ${symbol}`);
             const backendIndicators = this.backendService.convertStrategyIndicators(indicatorsToFetch);
-            const multiIndicatorResult = await this.backendService.getOptimizedMultiIndicatorAnalysis(symbol, backendIndicators, true);
+            const multiIndicatorResult = await this.backendService.getOptimizedMultiIndicatorAnalysis(symbol, backendIndicators, useMockData);
             const indicators = {};
             if (multiIndicatorResult.indicators) {
                 Object.keys(multiIndicatorResult.indicators).forEach(key => {
@@ -41,8 +41,17 @@ class TradingService {
             const analysis = strategy
                 ? this.makeStrategyDecision(symbol, indicators, strategy)
                 : this.makeDecision(symbol, indicators);
+            const metadata = {
+                dataSource: multiIndicatorResult.dataSource || (useMockData ? 'Mock Data' : 'Live API'),
+                timestamp: multiIndicatorResult.timestamp || new Date().toISOString(),
+                candleCount: multiIndicatorResult.candleCount || 0,
+                usedMockData: useMockData
+            };
             console.log(`📊 Analysis complete for ${symbol}: ${analysis.recommendation} (${analysis.confidence})`);
-            return analysis;
+            return {
+                ...analysis,
+                metadata
+            };
         }
         catch (error) {
             console.error(`❌ Error analyzing ${symbol}:`, error);
@@ -53,7 +62,13 @@ class TradingService {
                 confidence: 'LOW',
                 reasoning: ['Analysis failed due to API error'],
                 indicators: {},
-                recommendedQuantity: 0
+                recommendedQuantity: 0,
+                metadata: {
+                    dataSource: useMockData ? 'Mock Data' : 'Live API',
+                    timestamp: new Date().toISOString(),
+                    candleCount: 0,
+                    usedMockData: useMockData
+                }
             };
         }
     }

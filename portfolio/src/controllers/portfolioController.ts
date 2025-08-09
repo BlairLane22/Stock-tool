@@ -683,6 +683,7 @@ export class PortfolioController {
   analyzeWithStrategy = async (req: Request, res: Response) => {
     try {
       const { symbol, strategyId } = req.params;
+      const { mock = 'true' } = req.query;
 
       if (!symbol || !strategyId) {
         return res.status(400).json({
@@ -691,7 +692,10 @@ export class PortfolioController {
         });
       }
 
-      const analysis = await this.tradingService.analyzeStock(symbol.toUpperCase(), strategyId);
+      // Convert mock parameter to boolean (default to true for safety)
+      const useMockData = mock !== 'false';
+
+      const analysis = await this.tradingService.analyzeStock(symbol.toUpperCase(), strategyId, useMockData);
 
       res.json({
         success: true,

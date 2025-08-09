@@ -15,13 +15,19 @@ export interface TradingAnalysis {
     stopLoss?: number;
     recommendedQuantity?: number;
     riskReward?: number;
+    metadata?: {
+        dataSource: string;
+        timestamp: string;
+        candleCount: number;
+        usedMockData: boolean;
+    };
 }
 export declare class TradingService {
     private portfolioService;
     private backendService;
     private backendApiUrl;
     constructor();
-    analyzeStock(symbol: string, strategyId?: string): Promise<TradingAnalysis>;
+    analyzeStock(symbol: string, strategyId?: string, useMockData?: boolean): Promise<TradingAnalysis>;
     private mapIndicatorName;
     private mapBackendIndicatorName;
     private getIndicatorLegacy;

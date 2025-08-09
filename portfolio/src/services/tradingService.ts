@@ -19,6 +19,12 @@ export interface TradingAnalysis {
   stopLoss?: number;
   recommendedQuantity?: number;
   riskReward?: number;
+  metadata?: {
+    dataSource: string;
+    timestamp: string;
+    candleCount: number;
+    usedMockData: boolean;
+  };
 }
 
 export class TradingService {
@@ -35,7 +41,7 @@ export class TradingService {
   /**
    * Analyze a stock and make trading recommendation
    */
-  async analyzeStock(symbol: string, strategyId?: string): Promise<TradingAnalysis> {
+  async analyzeStock(symbol: string, strategyId?: string, useMockData: boolean = true): Promise<TradingAnalysis> {
     console.log(`🔍 Analyzing ${symbol} for trading opportunities...`);
 
     try {
@@ -58,7 +64,7 @@ export class TradingService {
       const multiIndicatorResult = await this.backendService.getOptimizedMultiIndicatorAnalysis(
         symbol,
         backendIndicators,
-        true // Use mock data for now
+        useMockData
       );
 
       // Map results to indicator names for compatibility
@@ -80,9 +86,20 @@ export class TradingService {
         ? this.makeStrategyDecision(symbol, indicators, strategy)
         : this.makeDecision(symbol, indicators);
 
+      // Add metadata about data source
+      const metadata = {
+        dataSource: multiIndicatorResult.dataSource || (useMockData ? 'Mock Data' : 'Live API'),
+        timestamp: multiIndicatorResult.timestamp || new Date().toISOString(),
+        candleCount: multiIndicatorResult.candleCount || 0,
+        usedMockData: useMockData
+      };
+
       console.log(`📊 Analysis complete for ${symbol}: ${analysis.recommendation} (${analysis.confidence})`);
 
-      return analysis;
+      return {
+        ...analysis,
+        metadata
+      };
 
     } catch (error) {
       console.error(`❌ Error analyzing ${symbol}:`, error);
@@ -94,7 +111,13 @@ export class TradingService {
         confidence: 'LOW',
         reasoning: ['Analysis failed due to API error'],
         indicators: {},
-        recommendedQuantity: 0
+        recommendedQuantity: 0,
+        metadata: {
+          dataSource: useMockData ? 'Mock Data' : 'Live API',
+          timestamp: new Date().toISOString(),
+          candleCount: 0,
+          usedMockData: useMockData
+        }
       };
     }
   }

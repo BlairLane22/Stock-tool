@@ -591,13 +591,15 @@ class PortfolioController {
         this.analyzeWithStrategy = async (req, res) => {
             try {
                 const { symbol, strategyId } = req.params;
+                const { mock = 'true' } = req.query;
                 if (!symbol || !strategyId) {
                     return res.status(400).json({
                         success: false,
                         error: 'Symbol and strategy ID are required'
                     });
                 }
-                const analysis = await this.tradingService.analyzeStock(symbol.toUpperCase(), strategyId);
+                const useMockData = mock !== 'false';
+                const analysis = await this.tradingService.analyzeStock(symbol.toUpperCase(), strategyId, useMockData);
                 res.json({
                     success: true,
                     data: analysis
