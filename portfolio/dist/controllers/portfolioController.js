@@ -437,6 +437,179 @@ class PortfolioController {
                 });
             }
         };
+        this.getTradingStrategies = async (req, res) => {
+            try {
+                const { id } = req.params;
+                const strategies = await this.portfolioService.getTradingStrategies(id);
+                res.json({
+                    success: true,
+                    data: strategies,
+                    count: strategies.length
+                });
+            }
+            catch (error) {
+                res.status(500).json({
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Failed to get trading strategies'
+                });
+            }
+        };
+        this.createTradingStrategy = async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { name, description, indicators, buyConditions, sellConditions, riskManagement } = req.body;
+                if (!name || !indicators || !Array.isArray(indicators)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Name and indicators array are required'
+                    });
+                }
+                const strategy = await this.portfolioService.createTradingStrategy({
+                    portfolioId: id,
+                    name,
+                    description,
+                    indicators,
+                    buyConditions: buyConditions || {},
+                    sellConditions: sellConditions || {},
+                    riskManagement: riskManagement || {}
+                });
+                res.status(201).json({
+                    success: true,
+                    data: strategy
+                });
+            }
+            catch (error) {
+                res.status(500).json({
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Failed to create trading strategy'
+                });
+            }
+        };
+        this.updateTradingStrategy = async (req, res) => {
+            try {
+                const { strategyId } = req.params;
+                const updates = req.body;
+                const strategy = await this.portfolioService.updateTradingStrategy(strategyId, updates);
+                if (!strategy) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Trading strategy not found'
+                    });
+                }
+                res.json({
+                    success: true,
+                    data: strategy
+                });
+            }
+            catch (error) {
+                res.status(500).json({
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Failed to update trading strategy'
+                });
+            }
+        };
+        this.deleteTradingStrategy = async (req, res) => {
+            try {
+                const { strategyId } = req.params;
+                const success = await this.portfolioService.deleteTradingStrategy(strategyId);
+                if (!success) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Trading strategy not found'
+                    });
+                }
+                res.json({
+                    success: true,
+                    message: 'Trading strategy deleted successfully'
+                });
+            }
+            catch (error) {
+                res.status(500).json({
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Failed to delete trading strategy'
+                });
+            }
+        };
+        this.assignStrategyToWatchlist = async (req, res) => {
+            try {
+                const { id, symbol } = req.params;
+                const { strategyId } = req.body;
+                if (!strategyId) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Strategy ID is required'
+                    });
+                }
+                const success = await this.portfolioService.assignStrategyToWatchlist(id, symbol, strategyId);
+                if (!success) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Watchlist item not found'
+                    });
+                }
+                res.json({
+                    success: true,
+                    message: `Strategy assigned to ${symbol} in watchlist`
+                });
+            }
+            catch (error) {
+                res.status(500).json({
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Failed to assign strategy to watchlist'
+                });
+            }
+        };
+        this.assignStrategyToHolding = async (req, res) => {
+            try {
+                const { id, holdingId } = req.params;
+                const { strategyId } = req.body;
+                if (!strategyId) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Strategy ID is required'
+                    });
+                }
+                const success = await this.portfolioService.assignStrategyToHolding(id, holdingId, strategyId);
+                if (!success) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Holding not found'
+                    });
+                }
+                res.json({
+                    success: true,
+                    message: 'Strategy assigned to holding'
+                });
+            }
+            catch (error) {
+                res.status(500).json({
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Failed to assign strategy to holding'
+                });
+            }
+        };
+        this.analyzeWithStrategy = async (req, res) => {
+            try {
+                const { symbol, strategyId } = req.params;
+                if (!symbol || !strategyId) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Symbol and strategy ID are required'
+                    });
+                }
+                const analysis = await this.tradingService.analyzeStock(symbol.toUpperCase(), strategyId);
+                res.json({
+                    success: true,
+                    data: analysis
+                });
+            }
+            catch (error) {
+                res.status(500).json({
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Failed to analyze stock with strategy'
+                });
+            }
+        };
         this.portfolioService = new databasePortfolioService_1.DatabasePortfolioService();
         this.tradingService = new tradingService_1.TradingService();
         this.backendService = new backendService_1.BackendService();

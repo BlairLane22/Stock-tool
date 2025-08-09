@@ -17,6 +17,8 @@ export interface Holding {
   quantity: number;
   averagePrice: number;
   purchaseDate: string;
+  tradingStrategyId?: string;
+  tradingStrategy?: TradingStrategy;
 }
 
 export interface WatchlistItem {
@@ -24,6 +26,22 @@ export interface WatchlistItem {
   symbol: string;
   notes?: string;
   addedDate: string;
+  tradingStrategyId?: string;
+  tradingStrategy?: TradingStrategy;
+}
+
+export interface TradingStrategy {
+  id: string;
+  portfolioId: string;
+  name: string;
+  description?: string;
+  indicators: string[]; // ["rsi", "bollinger-bands", "ema"]
+  buyConditions: any; // JSON object with buy conditions
+  sellConditions: any; // JSON object with sell conditions
+  riskManagement: any; // JSON object with risk rules
+  isActive: boolean;
+  createdDate: string;
+  updatedDate: string;
 }
 
 export interface User {

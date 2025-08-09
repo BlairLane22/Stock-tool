@@ -33,6 +33,8 @@ async function getDatabase() {
             driver: sqlite3_1.default.Database
         });
         await db.exec('PRAGMA foreign_keys = ON');
+        await db.exec('PRAGMA journal_mode = WAL');
+        await db.exec('PRAGMA synchronous = NORMAL');
         console.log(`📊 Database connected: ${dbPath}`);
         await initializeSchema();
         return db;

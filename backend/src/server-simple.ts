@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
+import { multiIndicatorAnalysis, IndicatorRequest } from './services/multiIndicatorAnalysis';
+import { candleCache } from './services/candleCache';
 
 // Load environment variables from variables.env
 dotenv.config({
@@ -9,6 +11,39 @@ dotenv.config({
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Helper function for consistent API logging
+function logApiRequest(indicator: string, symbol: string, dataSource: string, result: any, responseTime?: number) {
+  console.log(`\n🎯 ${indicator.toUpperCase()} ANALYSIS:`);
+  console.log(`   📊 Symbol: ${symbol.toUpperCase()}`);
+  console.log(`   📈 Data Source: ${dataSource}`);
+
+  if (indicator === 'RSI') {
+    console.log(`   🎲 RSI Value: ${result.rsi}`);
+    console.log(`   🚦 Signal: ${result.signal}`);
+  } else if (indicator === 'BOLLINGER') {
+    console.log(`   📊 Price: $${result.price}`);
+    console.log(`   📈 Upper Band: $${result.upper}`);
+    console.log(`   📉 Lower Band: $${result.lower}`);
+    console.log(`   🚦 Signal: ${result.signal}`);
+  } else if (indicator === 'MACD') {
+    console.log(`   📊 MACD Line: ${result.macd || 'N/A'}`);
+    console.log(`   📈 Signal Line: ${result.signalLine || 'N/A'}`);
+    console.log(`   🚦 Signal: ${result.signal}`);
+  } else if (indicator === 'PATTERN') {
+    console.log(`   🎯 Pattern: ${result.pattern || 'None'}`);
+    console.log(`   📊 Confidence: ${result.confidence || 'N/A'}`);
+    console.log(`   🚦 Signal: ${result.signal}`);
+  } else {
+    console.log(`   🎲 Value: ${JSON.stringify(result).substring(0, 100)}...`);
+  }
+
+  if (responseTime) {
+    console.log(`   ⏰ Response Time: ${responseTime}ms`);
+  } else {
+    console.log(`   ⚡ Response Time: <1ms (Mock)`);
+  }
+}
 
 // Check if API tokens are available
 const hasApiTokens = !!(process.env.FINNHUB_API_TOKEN || process.env.ALPHA_VANTAGE_API_KEY);
@@ -189,7 +224,7 @@ app.get('/api/rsi/:symbol', async (req, res) => {
       }
     };
 
-    console.log(`📊 Using mock data for RSI ${symbol}`);
+    logApiRequest('RSI', symbol, 'Mock Data (Comprehensive Analysis)', mockResult);
     res.json(mockResult);
 
   } catch (error) {
@@ -222,20 +257,26 @@ app.get('/api/rsi/:symbol/quick', async (req, res) => {
     if (!useMock && hasApiTokens) {
       try {
         // Try real API with proper error handling
-        console.log(`🔄 Attempting real API call for RSI ${symbol}`);
+        console.log(`\n🔄 LIVE API REQUEST:`);
+        console.log(`   📊 Symbol: ${symbol.toUpperCase()}`);
+        console.log(`   📡 Fetching from Alpha Vantage/Finnhub...`);
+        const startTime = Date.now();
         const { quickRSI } = await import('./commands/rsiAnalysis');
         const result = await quickRSI(symbol, parseInt(period as string));
-        console.log(`✅ Real API call successful for RSI ${symbol}`);
+        const responseTime = Date.now() - startTime;
+        console.log(`   ✅ SUCCESS! Live data retrieved`);
+        logApiRequest('RSI', symbol, 'Live API (Alpha Vantage/Finnhub)', result, responseTime);
         res.json({ ...result, dataSource: 'Live API' });
         return;
       } catch (apiError) {
-        console.log(`❌ Real API call failed for RSI ${symbol}:`, apiError instanceof Error ? apiError.message : 'Unknown error');
+        console.log(`   ❌ LIVE API FAILED: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);
+        console.log(`   🔄 Falling back to mock data...`);
         // Fall through to mock data
       }
     }
 
     // Use mock data (default or fallback)
-    console.log(`📊 Using mock data for RSI ${symbol}`);
+    logApiRequest('RSI', symbol, 'Mock Data (Quick Response)', mockResult);
     res.json(mockResult);
 
   } catch (error) {
@@ -408,24 +449,30 @@ app.get('/api/bollinger/:symbol/quick', async (req, res) => {
     if (!useMock && hasApiTokens) {
       try {
         // Try real API with proper error handling
-        console.log(`🔄 Attempting real API call for Bollinger Bands ${symbol}`);
+        console.log(`\n🔄 LIVE API REQUEST:`);
+        console.log(`   📊 Symbol: ${symbol.toUpperCase()}`);
+        console.log(`   📡 Fetching Bollinger Bands from live API...`);
+        const startTime = Date.now();
         const { quickBollingerBands } = await import('./commands/bollingerBandsAnalysis');
         const result = await quickBollingerBands(
           symbol,
           parseInt(period as string),
           parseFloat(multiplier as string)
         );
-        console.log(`✅ Real API call successful for Bollinger Bands ${symbol}`);
+        const responseTime = Date.now() - startTime;
+        console.log(`   ✅ SUCCESS! Live Bollinger Bands data retrieved`);
+        logApiRequest('BOLLINGER', symbol, 'Live API (Alpha Vantage/Finnhub)', result, responseTime);
         res.json({ ...result, dataSource: 'Live API' });
         return;
       } catch (apiError) {
-        console.log(`❌ Real API call failed for Bollinger Bands ${symbol}:`, apiError instanceof Error ? apiError.message : 'Unknown error');
+        console.log(`   ❌ LIVE API FAILED: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);
+        console.log(`   🔄 Falling back to mock data...`);
         // Fall through to mock data
       }
     }
 
     // Use mock data (default or fallback)
-    console.log(`📊 Using mock data for Bollinger Bands ${symbol}`);
+    logApiRequest('BOLLINGER', symbol, 'Mock Data (Quick Response)', mockResult);
     res.json(mockResult);
 
   } catch (error) {
@@ -1545,6 +1592,107 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
+// Multi-Indicator Analysis endpoint - fetch candles once, calculate multiple indicators
+app.post('/api/analyze/:symbol/multi', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { mock = 'true' } = req.query;
+    const { indicators } = req.body;
+
+    if (!indicators || !Array.isArray(indicators)) {
+      return res.status(400).json({
+        error: 'Missing or invalid indicators array in request body',
+        example: {
+          indicators: [
+            { type: 'rsi', params: { period: 14 } },
+            { type: 'macd', params: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 } },
+            { type: 'bollinger', params: { period: 20, multiplier: 2 } }
+          ]
+        }
+      });
+    }
+
+    console.log(`\n🎯 MULTI-INDICATOR ANALYSIS:`);
+    console.log(`   📊 Symbol: ${symbol.toUpperCase()}`);
+    console.log(`   📈 Indicators: ${indicators.map(i => i.type).join(', ')}`);
+    console.log(`   💾 Data Mode: ${mock === 'false' ? 'Live API' : 'Mock Data'}`);
+
+    const startTime = Date.now();
+    const result = await multiIndicatorAnalysis.analyzeMultipleIndicators(
+      symbol,
+      indicators as IndicatorRequest[],
+      mock !== 'false'
+    );
+    const responseTime = Date.now() - startTime;
+
+    console.log(`   ✅ Analysis complete: ${Object.keys(result.indicators).length} indicators calculated`);
+    console.log(`   📊 Candles used: ${result.candleCount}`);
+    console.log(`   ⏰ Response Time: ${responseTime}ms`);
+
+    if (Object.keys(result.errors).length > 0) {
+      console.log(`   ⚠️  Errors: ${Object.keys(result.errors).join(', ')}`);
+    }
+
+    res.json(result);
+    return;
+
+  } catch (error) {
+    console.error('❌ Multi-indicator analysis error:', error);
+    res.status(500).json({
+      error: 'Multi-indicator analysis failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+    return;
+  }
+});
+
+// Cache management endpoints
+app.get('/api/cache/stats', (req, res) => {
+  try {
+    const stats = candleCache.getCacheStats();
+    res.json({
+      success: true,
+      cache: stats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.delete('/api/cache/:symbol', (req, res) => {
+  try {
+    const { symbol } = req.params;
+    candleCache.clearCache(symbol);
+    res.json({
+      success: true,
+      message: `Cache cleared for ${symbol.toUpperCase()}`
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+app.delete('/api/cache', (req, res) => {
+  try {
+    candleCache.clearAllCache();
+    res.json({
+      success: true,
+      message: 'All cache cleared'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
@@ -1556,19 +1704,40 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Trading Strategy API Server running on port ${PORT}`);
-  console.log(`📊 API Documentation: http://localhost:${PORT}/`);
-  console.log(`❤️  Health Check: http://localhost:${PORT}/health`);
-  console.log(`\n📈 Available Endpoints:`);
-  console.log(`   RSI: http://localhost:${PORT}/api/rsi/AAPL/quick`);
-  console.log(`   Bollinger Bands: http://localhost:${PORT}/api/bollinger/AAPL/quick`);
-  console.log(`   MFI: http://localhost:${PORT}/api/mfi/AAPL/quick`);
-  console.log(`   IMI: http://localhost:${PORT}/api/imi/AAPL/quick`);
-  console.log(`   EMA: http://localhost:${PORT}/api/ema/AAPL/quick`);
-  console.log(`   ATR: http://localhost:${PORT}/api/atr/AAPL/quick`);
-  console.log(`   MACD: http://localhost:${PORT}/api/macd/AAPL/quick`);
-  console.log(`   Cup & Handle: http://localhost:${PORT}/api/cup-handle/AAPL/quick`);
-  console.log(`   Head & Shoulders: http://localhost:${PORT}/api/head-and-shoulders/AAPL/quick`);
+  console.log('\n' + '='.repeat(80));
+  console.log('🚀 STOCKTRACK TECHNICAL INDICATORS API');
+  console.log('='.repeat(80));
+  console.log(`📡 Server Status: ONLINE`);
+  console.log(`🌐 Port: ${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔑 API Tokens: ${hasApiTokens ? '✅ Available' : '❌ Not Configured'}`);
+  if (hasApiTokens) {
+    console.log(`   📈 Alpha Vantage: ${process.env.ALPHA_VANTAGE_API_KEY ? '✅ Configured' : '❌ Missing'}`);
+    console.log(`   📊 Finnhub: ${process.env.FINNHUB_API_TOKEN ? '✅ Configured' : '❌ Missing'}`);
+  }
+  console.log(`💾 Data Mode: ${hasApiTokens ? 'Live API + Mock Fallback' : 'Mock Data Only'}`);
+  console.log(`\n📋 QUICK REFERENCE:`);
+  console.log(`   🏥 Health Check: http://localhost:${PORT}/health`);
+  console.log(`   📖 Documentation: http://localhost:${PORT}/`);
+  console.log(`\n🎯 TECHNICAL INDICATORS (Quick Analysis):`);
+  console.log(`   📊 RSI (Relative Strength): http://localhost:${PORT}/api/rsi/AAPL/quick`);
+  console.log(`   📈 Bollinger Bands: http://localhost:${PORT}/api/bollinger/AAPL/quick`);
+  console.log(`   💰 Money Flow Index: http://localhost:${PORT}/api/mfi/AAPL/quick`);
+  console.log(`   📉 Intraday Momentum: http://localhost:${PORT}/api/imi/AAPL/quick`);
+  console.log(`   📊 EMA (Exponential MA): http://localhost:${PORT}/api/ema/AAPL/quick`);
+  console.log(`   📊 ATR (Average True Range): http://localhost:${PORT}/api/atr/AAPL/quick`);
+  console.log(`   📈 MACD: http://localhost:${PORT}/api/macd/AAPL/quick`);
+  console.log(`\n🎯 CHART PATTERNS:`);
+  console.log(`   🏆 Cup & Handle: http://localhost:${PORT}/api/cup-handle/AAPL/quick`);
+  console.log(`   📉 Head & Shoulders: http://localhost:${PORT}/api/head-and-shoulders/AAPL/quick`);
+  console.log(`\n🚀 MULTI-INDICATOR ANALYSIS (NEW!):`);
+  console.log(`   📊 Multiple Indicators: POST http://localhost:${PORT}/api/analyze/AAPL/multi`);
+  console.log(`   📦 Cache Stats: GET http://localhost:${PORT}/api/cache/stats`);
+  console.log(`   🗑️  Clear Cache: DELETE http://localhost:${PORT}/api/cache/AAPL`);
+  console.log(`\n💡 TIP: Replace 'AAPL' with any stock symbol (TSLA, NVDA, MSFT, etc.)`);
+  console.log(`💡 TIP: Add '?mock=false' to use live API data (requires API keys)`);
+  console.log(`💡 TIP: Use multi-indicator endpoint to reduce API calls!`);
+  console.log('='.repeat(80));
 });
 
 export default app;

@@ -1,4 +1,4 @@
-import { Portfolio, Holding, WatchlistItem, User } from '../types/portfolio';
+import { Portfolio, Holding, WatchlistItem, User, TradingStrategy } from '../types/portfolio';
 export interface TradingDecision {
     id: string;
     portfolioId: string;
@@ -79,5 +79,20 @@ export declare class DatabasePortfolioService {
         indicatorData: any;
     }): Promise<TradingDecision>;
     getTradingDecisions(portfolioId: string, limit?: number): Promise<TradingDecision[]>;
+    getTradingStrategies(portfolioId: string): Promise<TradingStrategy[]>;
+    getTradingStrategy(id: string): Promise<TradingStrategy | null>;
+    createTradingStrategy(data: {
+        portfolioId: string;
+        name: string;
+        description?: string;
+        indicators: string[];
+        buyConditions: any;
+        sellConditions: any;
+        riskManagement: any;
+    }): Promise<TradingStrategy>;
+    updateTradingStrategy(id: string, updates: Partial<TradingStrategy>): Promise<TradingStrategy | null>;
+    deleteTradingStrategy(id: string): Promise<boolean>;
+    assignStrategyToWatchlist(portfolioId: string, symbol: string, strategyId: string): Promise<boolean>;
+    assignStrategyToHolding(portfolioId: string, holdingId: string, strategyId: string): Promise<boolean>;
 }
 //# sourceMappingURL=databasePortfolioService.d.ts.map

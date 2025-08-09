@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { DatabasePortfolioService } from './databasePortfolioService';
+import { BackendService } from './backendService';
 
 export interface TradingAnalysis {
   symbol: string;
@@ -22,48 +23,70 @@ export interface TradingAnalysis {
 
 export class TradingService {
   private portfolioService: DatabasePortfolioService;
+  private backendService: BackendService;
   private backendApiUrl: string;
 
   constructor() {
     this.portfolioService = new DatabasePortfolioService();
+    this.backendService = new BackendService();
     this.backendApiUrl = process.env.BACKEND_API_URL || 'http://localhost:3000';
   }
 
   /**
    * Analyze a stock and make trading recommendation
    */
-  async analyzeStock(symbol: string): Promise<TradingAnalysis> {
+  async analyzeStock(symbol: string, strategyId?: string): Promise<TradingAnalysis> {
     console.log(`🔍 Analyzing ${symbol} for trading opportunities...`);
 
     try {
-      // Get multiple technical indicators from backend API
-      const [rsiData, macdData, bollingerData, headShouldersData, cupHandleData] = await Promise.allSettled([
-        this.getIndicator('rsi', symbol),
-        this.getIndicator('macd', symbol), 
-        this.getIndicator('bollinger-bands', symbol),
-        this.getIndicator('head-and-shoulders', symbol),
-        this.getIndicator('cup-handle', symbol)
-      ]);
+      let indicatorsToFetch = ['rsi', 'macd', 'bollinger-bands', 'head-and-shoulders', 'cup-handle'];
+      let strategy = null;
 
-      // Extract successful results
-      const indicators = {
-        rsi: rsiData.status === 'fulfilled' ? rsiData.value : null,
-        macd: macdData.status === 'fulfilled' ? macdData.value : null,
-        bollingerBands: bollingerData.status === 'fulfilled' ? bollingerData.value : null,
-        headAndShoulders: headShouldersData.status === 'fulfilled' ? headShouldersData.value : null,
-        cupAndHandle: cupHandleData.status === 'fulfilled' ? cupHandleData.value : null
-      };
+      // If strategy is specified, get it and use only its indicators
+      if (strategyId) {
+        strategy = await this.portfolioService.getTradingStrategy(strategyId);
+        if (strategy) {
+          indicatorsToFetch = strategy.indicators;
+          console.log(`📋 Using strategy "${strategy.name}" with indicators: ${indicatorsToFetch.join(', ')}`);
+        }
+      }
 
-      // Make trading decision based on indicators
-      const analysis = this.makeDecision(symbol, indicators);
-      
+      // OPTIMIZED: Fetch all indicators in a single API call
+      console.log(`🚀 Using optimized multi-indicator analysis for ${symbol}`);
+
+      const backendIndicators = this.backendService.convertStrategyIndicators(indicatorsToFetch);
+      const multiIndicatorResult = await this.backendService.getOptimizedMultiIndicatorAnalysis(
+        symbol,
+        backendIndicators,
+        true // Use mock data for now
+      );
+
+      // Map results to indicator names for compatibility
+      const indicators: any = {};
+      if (multiIndicatorResult.indicators) {
+        Object.keys(multiIndicatorResult.indicators).forEach(key => {
+          const mappedName = this.mapBackendIndicatorName(key);
+          indicators[mappedName] = multiIndicatorResult.indicators[key];
+        });
+      }
+
+      // Handle any errors from the multi-indicator call
+      if (multiIndicatorResult.errors && Object.keys(multiIndicatorResult.errors).length > 0) {
+        console.warn(`⚠️ Some indicators failed for ${symbol}:`, multiIndicatorResult.errors);
+      }
+
+      // Make trading decision based on indicators and strategy
+      const analysis = strategy
+        ? this.makeStrategyDecision(symbol, indicators, strategy)
+        : this.makeDecision(symbol, indicators);
+
       console.log(`📊 Analysis complete for ${symbol}: ${analysis.recommendation} (${analysis.confidence})`);
-      
+
       return analysis;
 
     } catch (error) {
       console.error(`❌ Error analyzing ${symbol}:`, error);
-      
+
       return {
         symbol,
         currentPrice: 0,
@@ -77,20 +100,201 @@ export class TradingService {
   }
 
   /**
-   * Get indicator data from backend API
+   * Map backend indicator names to analysis object keys
    */
-  private async getIndicator(indicator: string, symbol: string): Promise<any> {
+  private mapIndicatorName(indicator: string): string {
+    const mapping: { [key: string]: string } = {
+      'rsi': 'rsi',
+      'macd': 'macd',
+      'bollinger-bands': 'bollingerBands',
+      'head-and-shoulders': 'headAndShoulders',
+      'cup-handle': 'cupAndHandle',
+      'ema': 'ema'
+    };
+    return mapping[indicator] || indicator;
+  }
+
+  /**
+   * Map backend multi-indicator response keys to analysis object keys
+   */
+  private mapBackendIndicatorName(backendKey: string): string {
+    const mapping: { [key: string]: string } = {
+      'rsi': 'rsi',
+      'macd': 'macd',
+      'bollinger': 'bollingerBands',
+      'head-shoulders': 'headAndShoulders',
+      'cup-handle': 'cupAndHandle',
+      'ema': 'ema',
+      'atr': 'atr',
+      'mfi': 'mfi',
+      'imi': 'imi'
+    };
+    return mapping[backendKey] || backendKey;
+  }
+
+  /**
+   * LEGACY: Get indicator data from backend API (replaced by optimized multi-indicator)
+   * Kept for fallback purposes
+   */
+  private async getIndicatorLegacy(indicator: string, symbol: string): Promise<any> {
     const url = `${this.backendApiUrl}/api/${indicator}/${symbol}/quick`;
-    console.log(`📡 Fetching ${indicator} for ${symbol}...`);
-    
+    console.log(`📡 [LEGACY] Fetching ${indicator} for ${symbol}...`);
+
     const response = await axios.get(url, {
       timeout: 10000,
       headers: {
         'User-Agent': 'StockTrack-Portfolio-API/1.0.0'
       }
     });
-    
+
     return response.data;
+  }
+
+  /**
+   * Make trading decision based on custom strategy
+   */
+  private makeStrategyDecision(symbol: string, indicators: any, strategy: any): TradingAnalysis {
+    const reasoning: string[] = [];
+    let buySignals = 0;
+    let sellSignals = 0;
+    let confidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
+    let currentPrice = 0;
+    let targetPrice: number | undefined;
+    let stopLoss: number | undefined;
+    let riskReward: number | undefined;
+
+    reasoning.push(`🎯 Using strategy: "${strategy.name}"`);
+    reasoning.push(`📊 Indicators: ${strategy.indicators.join(', ')}`);
+
+    // Analyze each indicator in the strategy
+    for (const indicatorName of strategy.indicators) {
+      const mappedName = this.mapIndicatorName(indicatorName);
+      const indicatorData = indicators[mappedName];
+
+      if (!indicatorData) {
+        reasoning.push(`⚠️ ${indicatorName.toUpperCase()} data unavailable`);
+        continue;
+      }
+
+      currentPrice = indicatorData.price || currentPrice;
+
+      // Analyze based on indicator type
+      if (indicatorName === 'rsi' && indicatorData) {
+        // Handle both old format (rsi.rsi) and new format (rsi.rsi.current)
+        const rsi = indicatorData.rsi?.current || indicatorData.rsi?.rsi?.current || indicatorData.rsi;
+        if (typeof rsi === 'number') {
+          if (rsi < 30) {
+            buySignals++;
+            reasoning.push(`🟢 RSI oversold (${rsi.toFixed(1)}) - buy signal`);
+          } else if (rsi > 70) {
+            sellSignals++;
+            reasoning.push(`🔴 RSI overbought (${rsi.toFixed(1)}) - sell signal`);
+          } else {
+            reasoning.push(`⚪ RSI neutral (${rsi.toFixed(1)})`);
+          }
+        } else {
+          reasoning.push(`⚠️ RSI data format issue`);
+        }
+      }
+
+      if (indicatorName === 'macd' && indicatorData) {
+        // Handle both old format (macd.signal) and new format (macd.macd.signal)
+        const signal = indicatorData.signal || indicatorData.macd?.signal;
+        if (signal) {
+          if (signal === 'BUY') {
+            buySignals++;
+            reasoning.push(`🟢 MACD bullish signal`);
+          } else if (signal === 'SELL') {
+            sellSignals++;
+            reasoning.push(`🔴 MACD bearish signal`);
+          } else {
+            reasoning.push(`⚪ MACD neutral`);
+          }
+        } else {
+          reasoning.push(`⚠️ MACD data format issue`);
+        }
+      }
+
+      if (indicatorName === 'bollinger-bands' && indicatorData.signal) {
+        if (indicatorData.signal === 'BUY') {
+          buySignals++;
+          reasoning.push(`🟢 Bollinger Bands buy signal`);
+        } else if (indicatorData.signal === 'SELL') {
+          sellSignals++;
+          reasoning.push(`🔴 Bollinger Bands sell signal`);
+        }
+      }
+
+      if (indicatorName === 'head-and-shoulders' && indicatorData.isPattern) {
+        if (indicatorData.signal === 'SELL' && indicatorData.confidence === 'HIGH') {
+          sellSignals += 2;
+          reasoning.push(`🔴 Head & Shoulders pattern - strong bearish signal`);
+          targetPrice = indicatorData.targetPrice;
+          stopLoss = indicatorData.stopLoss;
+          riskReward = indicatorData.riskReward;
+        }
+      }
+
+      if (indicatorName === 'cup-handle' && indicatorData.patternDetected) {
+        if (indicatorData.signal === 'BUY' && indicatorData.confidence === 'HIGH') {
+          buySignals += 2;
+          reasoning.push(`🟢 Cup & Handle pattern - strong bullish signal`);
+          targetPrice = indicatorData.targetPrice;
+          stopLoss = indicatorData.stopLoss;
+        }
+      }
+    }
+
+    // Apply strategy-specific conditions
+    const buyConditions = strategy.buyConditions;
+    const sellConditions = strategy.sellConditions;
+
+    // Determine recommendation based on strategy rules
+    let recommendation: 'BUY' | 'SELL' | 'HOLD' | 'WATCH' = 'HOLD';
+
+    if (buyConditions.min_buy_signals && buySignals >= buyConditions.min_buy_signals) {
+      recommendation = 'BUY';
+      confidence = buySignals >= 3 ? 'HIGH' : 'MEDIUM';
+    } else if (sellConditions.min_sell_signals && sellSignals >= sellConditions.min_sell_signals) {
+      recommendation = 'SELL';
+      confidence = sellSignals >= 3 ? 'HIGH' : 'MEDIUM';
+    } else if (buySignals > sellSignals && buySignals > 0) {
+      recommendation = 'WATCH';
+      reasoning.push(`⚪ Weak buy signals - watching for better entry`);
+    } else if (sellSignals > buySignals && sellSignals > 0) {
+      recommendation = 'WATCH';
+      reasoning.push(`⚪ Weak sell signals - watching for confirmation`);
+    }
+
+    // Apply risk management from strategy
+    const riskMgmt = strategy.riskManagement;
+    if (riskMgmt && currentPrice > 0) {
+      if (!stopLoss && riskMgmt.stop_loss_percent) {
+        stopLoss = recommendation === 'BUY'
+          ? currentPrice * (1 - riskMgmt.stop_loss_percent / 100)
+          : currentPrice * (1 + riskMgmt.stop_loss_percent / 100);
+      }
+      if (!targetPrice && riskMgmt.take_profit_percent) {
+        targetPrice = recommendation === 'BUY'
+          ? currentPrice * (1 + riskMgmt.take_profit_percent / 100)
+          : currentPrice * (1 - riskMgmt.take_profit_percent / 100);
+      }
+    }
+
+    const recommendedQuantity = this.calculatePositionSize(currentPrice, recommendation, confidence);
+
+    return {
+      symbol,
+      currentPrice,
+      recommendation,
+      confidence,
+      reasoning,
+      indicators,
+      targetPrice,
+      stopLoss,
+      recommendedQuantity,
+      riskReward
+    };
   }
 
   /**
@@ -109,16 +313,21 @@ export class TradingService {
     // RSI Analysis
     if (indicators.rsi) {
       currentPrice = indicators.rsi.price || currentPrice;
-      const rsi = indicators.rsi.rsi;
-      
-      if (rsi < 30) {
-        buySignals++;
-        reasoning.push(`🟢 RSI oversold (${rsi.toFixed(1)}) - potential buy opportunity`);
-      } else if (rsi > 70) {
-        sellSignals++;
-        reasoning.push(`🔴 RSI overbought (${rsi.toFixed(1)}) - potential sell signal`);
+      // Handle both old format (rsi.rsi) and new format (rsi.rsi.current)
+      const rsi = indicators.rsi.rsi?.current || indicators.rsi.rsi;
+
+      if (typeof rsi === 'number') {
+        if (rsi < 30) {
+          buySignals++;
+          reasoning.push(`🟢 RSI oversold (${rsi.toFixed(1)}) - potential buy opportunity`);
+        } else if (rsi > 70) {
+          sellSignals++;
+          reasoning.push(`🔴 RSI overbought (${rsi.toFixed(1)}) - potential sell signal`);
+        } else {
+          reasoning.push(`⚪ RSI neutral (${rsi.toFixed(1)})`);
+        }
       } else {
-        reasoning.push(`⚪ RSI neutral (${rsi.toFixed(1)})`);
+        reasoning.push(`⚠️ RSI data format issue`);
       }
     }
 

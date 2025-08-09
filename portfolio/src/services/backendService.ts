@@ -162,7 +162,7 @@ export class BackendService {
     }
   }
 
-  // Multi-indicator analysis for portfolio overview
+  // Multi-indicator analysis for portfolio overview (LEGACY - makes multiple API calls)
   async getMultiIndicatorAnalysis(symbols: string[]): Promise<any[]> {
     try {
       const promises = symbols.map(async (symbol) => {
@@ -199,6 +199,51 @@ export class BackendService {
     }
   }
 
+  // OPTIMIZED: Multi-indicator analysis using single API call per symbol
+  async getOptimizedMultiIndicatorAnalysis(
+    symbol: string,
+    indicators: Array<{type: string, params?: any}>,
+    useMockData: boolean = true
+  ): Promise<any> {
+    try {
+      console.log(`🚀 Optimized analysis for ${symbol} with ${indicators.length} indicators`);
+
+      const response = await this.api.post(`/api/analyze/${symbol}/multi?mock=${useMockData}`, {
+        indicators
+      });
+
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get optimized multi-indicator analysis for ${symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Batch optimized analysis for multiple symbols
+  async getBatchOptimizedAnalysis(
+    symbols: string[],
+    indicators: Array<{type: string, params?: any}>,
+    useMockData: boolean = true
+  ): Promise<any[]> {
+    try {
+      console.log(`🚀 Batch optimized analysis for ${symbols.length} symbols`);
+
+      const promises = symbols.map(symbol =>
+        this.getOptimizedMultiIndicatorAnalysis(symbol, indicators, useMockData)
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      return results.map((result, index) => ({
+        symbol: symbols[index],
+        success: result.status === 'fulfilled',
+        data: result.status === 'fulfilled' ? result.value : null,
+        error: result.status === 'rejected' ? result.reason.message : null
+      }));
+    } catch (error) {
+      throw new Error(`Failed to get batch optimized analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   // Batch quote data for portfolio holdings
   async getBatchQuotes(symbols: string[]): Promise<any[]> {
     try {
@@ -227,5 +272,54 @@ export class BackendService {
     } catch (error) {
       throw new Error(`Failed to get batch quotes: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  // Cache management methods
+  async getCacheStats(): Promise<any> {
+    try {
+      const response = await this.api.get('/api/cache/stats');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get cache stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async clearCache(symbol?: string): Promise<any> {
+    try {
+      const url = symbol ? `/api/cache/${symbol}` : '/api/cache';
+      const response = await this.api.delete(url);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to clear cache: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Helper method to convert strategy indicators to backend format
+  convertStrategyIndicators(strategyIndicators: string[]): Array<{type: string, params?: any}> {
+    return strategyIndicators.map(indicator => {
+      switch (indicator) {
+        case 'rsi':
+          return { type: 'rsi', params: { period: 14 } };
+        case 'macd':
+          return { type: 'macd', params: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 } };
+        case 'bollinger-bands':
+          return { type: 'bollinger', params: { period: 20, multiplier: 2 } };
+        case 'ema':
+          return { type: 'ema', params: { period: 12 } };
+        case 'atr':
+          return { type: 'atr', params: { period: 14 } };
+        case 'mfi':
+          return { type: 'mfi', params: { period: 14 } };
+        case 'imi':
+          return { type: 'imi', params: { period: 14 } };
+        case 'cup-handle':
+          return { type: 'cup-handle' };
+        case 'head-and-shoulders':
+          return { type: 'head-shoulders' };
+        default:
+          console.warn(`Unknown indicator: ${indicator}`);
+          return { type: indicator };
+      }
+    });
   }
 }
