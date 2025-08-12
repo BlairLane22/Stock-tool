@@ -285,6 +285,11 @@ class BackendService {
             }
         });
     }
+    async getBacktestSymbols() {
+        console.log(`📡 Fetching backtest symbols...`);
+        const response = await this.api.get('/api/backtest/symbols');
+        return response.data;
+    }
 }
 exports.BackendService = BackendService;
 //# sourceMappingURL=backendService.js.map

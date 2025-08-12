@@ -322,4 +322,14 @@ export class BackendService {
       }
     });
   }
+
+  /**
+   * Get available symbols for backtesting
+   */
+  async getBacktestSymbols(): Promise<any> {
+    console.log(`📡 Fetching backtest symbols...`);
+
+    const response = await this.api.get('/api/backtest/symbols');
+    return response.data;
+  }
 }

@@ -1693,6 +1693,63 @@ app.delete('/api/cache', (req, res) => {
   }
 });
 
+// Backtesting endpoints
+app.get('/api/backtest/data/:symbol', (req, res) => {
+  const { symbol } = req.params;
+  const symbolUpper = symbol.toUpperCase();
+
+  console.log(`📊 Backtest data request for ${symbolUpper}`);
+
+  try {
+    // Map symbols to their full data files
+    const dataFiles: { [key: string]: string } = {
+      'SPOT': 'spot-full-data.json',
+      'AMD': 'amd-full-data.json',
+      'NVDA': 'nvda-full-data.json',
+      'IBM': 'ibm-full-data.json'
+    };
+
+    const fileName = dataFiles[symbolUpper];
+    if (!fileName) {
+      return res.status(404).json({
+        success: false,
+        error: `No historical data available for ${symbolUpper}. Available symbols: ${Object.keys(dataFiles).join(', ')}`
+      });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+    const filePath = path.join(__dirname, '../../test-data', fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        error: `Data file not found: ${fileName}`
+      });
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    console.log(`✅ Loaded historical data for ${symbolUpper}: ${Object.keys(data['Time Series (Daily)']).length} days`);
+
+    return res.json(data);
+  } catch (error) {
+    console.error(`❌ Error loading backtest data for ${symbolUpper}:`, error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to load historical data'
+    });
+  }
+});
+
+app.get('/api/backtest/symbols', (req, res) => {
+  const availableSymbols = ['SPOT', 'AMD', 'NVDA', 'IBM'];
+  res.json({
+    success: true,
+    symbols: availableSymbols,
+    description: 'Available symbols for backtesting with full historical data'
+  });
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({

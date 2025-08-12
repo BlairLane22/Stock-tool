@@ -13,6 +13,91 @@ class TradingService {
         this.backendService = new backendService_1.BackendService();
         this.backendApiUrl = process.env.BACKEND_API_URL || 'http://localhost:3000';
     }
+    async analyzeHistoricalData(symbol, strategyId, historicalData, currentDate, lookbackDays = 50) {
+        console.log(`🔍 Analyzing ${symbol} historical data for ${currentDate}...`);
+        try {
+            const strategy = await this.portfolioService.getTradingStrategy(strategyId);
+            if (!strategy) {
+                throw new Error(`Strategy ${strategyId} not found`);
+            }
+            console.log(`📋 Using strategy "${strategy.name}" with indicators: ${strategy.indicators.join(', ')}`);
+            const sortedDates = Object.keys(historicalData).sort();
+            const currentIndex = sortedDates.indexOf(currentDate);
+            if (currentIndex < lookbackDays) {
+                return {
+                    symbol,
+                    currentPrice: parseFloat(historicalData[currentDate]['4. close']),
+                    recommendation: 'HOLD',
+                    confidence: 'LOW',
+                    reasoning: ['Insufficient historical data for analysis'],
+                    indicators: {},
+                    metadata: {
+                        dataSource: 'Historical Data',
+                        timestamp: new Date().toISOString(),
+                        candleCount: 0,
+                        usedMockData: false
+                    }
+                };
+            }
+            const priceData = [];
+            for (let i = currentIndex - lookbackDays; i <= currentIndex; i++) {
+                const date = sortedDates[i];
+                const dayData = historicalData[date];
+                priceData.push({
+                    date,
+                    open: parseFloat(dayData['1. open']),
+                    high: parseFloat(dayData['2. high']),
+                    low: parseFloat(dayData['3. low']),
+                    close: parseFloat(dayData['4. close']),
+                    volume: parseInt(dayData['5. volume'])
+                });
+            }
+            const indicators = await this.calculateHistoricalIndicators(priceData, strategy.indicators);
+            const currentPrice = parseFloat(historicalData[currentDate]['4. close']);
+            const previousPrice = currentIndex > 0 ? parseFloat(historicalData[sortedDates[currentIndex - 1]]['4. close']) : currentPrice;
+            const change = currentPrice - previousPrice;
+            const changePercent = previousPrice > 0 ? (change / previousPrice) * 100 : 0;
+            const analysis = this.makeHistoricalTradingDecision(indicators, strategy, currentPrice);
+            if (currentDate === '2000-03-15' || currentDate === '2000-06-15' || currentDate === '2001-01-15') {
+                console.log(`🔍 DEBUG ${currentDate}: Price=${currentPrice}, EMA=${indicators.ema?.value?.toFixed(2)}, Signal=${analysis.recommendation}, Reasoning:`, analysis.reasoning);
+            }
+            if (strategy.indicators.includes('macd') && strategy.indicators.includes('rsi') &&
+                (currentDate === '2000-03-15' || currentDate === '2000-06-15' || currentDate === '2001-01-15')) {
+                console.log(`🔍 MACD-RSI DEBUG ${currentDate}: MACD=${indicators.macd?.current?.toFixed(4)}, Signal=${indicators.macd?.signalCurrent?.toFixed(4)}, RSI=${indicators.rsi?.value?.toFixed(1)}, Decision=${analysis.recommendation}`);
+            }
+            return {
+                symbol,
+                currentPrice,
+                recommendation: analysis.recommendation,
+                confidence: analysis.confidence,
+                reasoning: analysis.reasoning,
+                indicators,
+                metadata: {
+                    dataSource: 'Historical Data',
+                    timestamp: new Date().toISOString(),
+                    candleCount: priceData.length,
+                    usedMockData: false
+                }
+            };
+        }
+        catch (error) {
+            console.error(`❌ Error analyzing historical data for ${symbol}:`, error);
+            return {
+                symbol,
+                currentPrice: parseFloat(historicalData[currentDate]['4. close']),
+                recommendation: 'HOLD',
+                confidence: 'LOW',
+                reasoning: [`Analysis error: ${error instanceof Error ? error.message : 'Unknown error'}`],
+                indicators: {},
+                metadata: {
+                    dataSource: 'Historical Data',
+                    timestamp: new Date().toISOString(),
+                    candleCount: 0,
+                    usedMockData: false
+                }
+            };
+        }
+    }
     async analyzeStock(symbol, strategyId, useMockData = true) {
         console.log(`🔍 Analyzing ${symbol} for trading opportunities...`);
         try {
@@ -192,11 +277,37 @@ class TradingService {
                     stopLoss = indicatorData.stopLoss;
                 }
             }
+            if (indicatorName === 'ema' && indicatorData) {
+                const signal = indicatorData.signal;
+                const trend = indicatorData.trend;
+                const pricePosition = indicatorData.pricePosition;
+                const emaValue = indicatorData.ema?.current;
+                const strength = indicatorData.strength;
+                if (signal && trend) {
+                    if (signal === 'BUY' && trend === 'BULLISH') {
+                        buySignals++;
+                        reasoning.push(`🟢 EMA bullish signal - price above 50-day EMA ($${emaValue?.toFixed(2)}) - ${strength} signal`);
+                    }
+                    else if (signal === 'SELL' && trend === 'BEARISH') {
+                        sellSignals++;
+                        reasoning.push(`🔴 EMA bearish signal - price below 50-day EMA ($${emaValue?.toFixed(2)}) - ${strength} signal`);
+                    }
+                    else {
+                        reasoning.push(`⚪ EMA neutral - trend: ${trend}, position: ${pricePosition}`);
+                    }
+                }
+                else {
+                    reasoning.push(`⚠️ EMA data incomplete - signal: ${signal}, trend: ${trend}`);
+                }
+            }
         }
         const buyConditions = strategy.buyConditions;
         const sellConditions = strategy.sellConditions;
         let recommendation = 'HOLD';
-        if (buyConditions.min_buy_signals && buySignals >= buyConditions.min_buy_signals) {
+        if (this.isIndividualIndicatorStrategy(strategy)) {
+            recommendation = this.evaluateIndividualIndicatorStrategy(strategy, indicators, reasoning);
+        }
+        else if (buyConditions.min_buy_signals && buySignals >= buyConditions.min_buy_signals) {
             recommendation = 'BUY';
             confidence = buySignals >= 3 ? 'HIGH' : 'MEDIUM';
         }
@@ -316,6 +427,30 @@ class TradingService {
                 stopLoss = indicators.cupAndHandle.stopLoss;
             }
         }
+        if (indicators.ema) {
+            currentPrice = indicators.ema.price || currentPrice;
+            const signal = indicators.ema.signal;
+            const trend = indicators.ema.trend;
+            const pricePosition = indicators.ema.pricePosition;
+            const emaValue = indicators.ema.ema?.current;
+            const strength = indicators.ema.strength;
+            if (signal && trend) {
+                if (signal === 'BUY' && trend === 'BULLISH') {
+                    buySignals++;
+                    reasoning.push(`🟢 EMA bullish trend - price above 50-day EMA ($${emaValue?.toFixed(2)}) - ${strength} signal`);
+                }
+                else if (signal === 'SELL' && trend === 'BEARISH') {
+                    sellSignals++;
+                    reasoning.push(`🔴 EMA bearish trend - price below 50-day EMA ($${emaValue?.toFixed(2)}) - ${strength} signal`);
+                }
+                else {
+                    reasoning.push(`⚪ EMA neutral - trend: ${trend}, position: ${pricePosition}`);
+                }
+            }
+            else {
+                reasoning.push(`⚠️ EMA analysis incomplete - signal: ${signal}, trend: ${trend}`);
+            }
+        }
         let recommendation = 'HOLD';
         if (buySignals >= 3) {
             recommendation = 'BUY';
@@ -359,6 +494,124 @@ class TradingService {
             recommendedQuantity,
             riskReward
         };
+    }
+    isIndividualIndicatorStrategy(strategy) {
+        let indicators = strategy.indicators;
+        if (typeof indicators === 'string') {
+            try {
+                indicators = JSON.parse(indicators);
+            }
+            catch (e) {
+                console.warn('Failed to parse strategy indicators:', indicators);
+                return false;
+            }
+        }
+        return Array.isArray(indicators) && indicators.length === 1;
+    }
+    evaluateIndividualIndicatorStrategy(strategy, indicators, reasoning) {
+        let parsedIndicators = strategy.indicators;
+        if (typeof parsedIndicators === 'string') {
+            try {
+                parsedIndicators = JSON.parse(parsedIndicators);
+            }
+            catch (e) {
+                console.warn('Failed to parse strategy indicators:', parsedIndicators);
+                return 'HOLD';
+            }
+        }
+        const indicatorType = parsedIndicators[0];
+        const buyConditions = strategy.buyConditions;
+        const sellConditions = strategy.sellConditions;
+        switch (indicatorType) {
+            case 'bollinger-bands':
+                return this.evaluateBollingerStrategy(indicators.bollingerBands, buyConditions, sellConditions, reasoning);
+            case 'mfi':
+                return this.evaluateMFIStrategy(indicators.mfi, buyConditions, sellConditions, reasoning);
+            case 'rsi':
+                return this.evaluateRSIStrategy(indicators.rsi, buyConditions, sellConditions, reasoning);
+            case 'macd':
+                return this.evaluateMACDStrategy(indicators.macd, buyConditions, sellConditions, reasoning);
+            default:
+                reasoning.push(`⚠️ Unknown individual indicator strategy: ${indicatorType}`);
+                return 'HOLD';
+        }
+    }
+    evaluateBollingerStrategy(bollingerData, buyConditions, sellConditions, reasoning) {
+        if (!bollingerData) {
+            reasoning.push(`⚠️ Bollinger Bands data not available`);
+            return 'HOLD';
+        }
+        const signal = bollingerData.signal;
+        if (buyConditions.bollinger_signal === 'BUY' && signal === 'BUY') {
+            reasoning.push(`🟢 Bollinger Bands BUY signal - price near lower band`);
+            return 'BUY';
+        }
+        if (sellConditions.bollinger_signal === 'SELL' && signal === 'SELL') {
+            reasoning.push(`🔴 Bollinger Bands SELL signal - price near upper band`);
+            return 'SELL';
+        }
+        reasoning.push(`⚪ Bollinger Bands HOLD - signal: ${signal}`);
+        return 'HOLD';
+    }
+    evaluateMFIStrategy(mfiData, buyConditions, sellConditions, reasoning) {
+        if (!mfiData || typeof mfiData.mfi !== 'number') {
+            reasoning.push(`⚠️ MFI data not available`);
+            return 'HOLD';
+        }
+        const mfiValue = mfiData.mfi;
+        if (buyConditions.mfi_below && mfiValue < buyConditions.mfi_below) {
+            reasoning.push(`🟢 MFI BUY signal - MFI ${mfiValue.toFixed(1)} below ${buyConditions.mfi_below} (oversold)`);
+            return 'BUY';
+        }
+        if (sellConditions.mfi_above && mfiValue > sellConditions.mfi_above) {
+            reasoning.push(`🔴 MFI SELL signal - MFI ${mfiValue.toFixed(1)} above ${sellConditions.mfi_above} (overbought)`);
+            return 'SELL';
+        }
+        reasoning.push(`⚪ MFI HOLD - value: ${mfiValue.toFixed(1)}`);
+        return 'HOLD';
+    }
+    evaluateRSIStrategy(rsiData, buyConditions, sellConditions, reasoning) {
+        if (!rsiData || typeof rsiData.rsi !== 'number') {
+            reasoning.push(`⚠️ RSI data not available`);
+            return 'HOLD';
+        }
+        const rsiValue = rsiData.rsi;
+        if (buyConditions.rsi_below && rsiValue < buyConditions.rsi_below) {
+            reasoning.push(`🟢 RSI BUY signal - RSI ${rsiValue.toFixed(1)} below ${buyConditions.rsi_below} (oversold)`);
+            return 'BUY';
+        }
+        if (sellConditions.rsi_above && rsiValue > sellConditions.rsi_above) {
+            reasoning.push(`🔴 RSI SELL signal - RSI ${rsiValue.toFixed(1)} above ${sellConditions.rsi_above} (overbought)`);
+            return 'SELL';
+        }
+        reasoning.push(`⚪ RSI HOLD - value: ${rsiValue.toFixed(1)}`);
+        return 'HOLD';
+    }
+    evaluateMACDStrategy(macdData, buyConditions, sellConditions, reasoning) {
+        if (!macdData) {
+            reasoning.push(`⚠️ MACD data not available`);
+            return 'HOLD';
+        }
+        const signal = macdData.signal || 'HOLD';
+        const crossover = macdData.crossover;
+        if (buyConditions.macd_signal === 'BUY' && signal === 'BUY') {
+            reasoning.push(`🟢 MACD BUY signal - bullish crossover`);
+            return 'BUY';
+        }
+        if (buyConditions.crossover === 'BULLISH_CROSSOVER' && crossover === 'BULLISH_CROSSOVER') {
+            reasoning.push(`🟢 MACD BUY signal - bullish crossover detected`);
+            return 'BUY';
+        }
+        if (sellConditions.macd_signal === 'SELL' && signal === 'SELL') {
+            reasoning.push(`🔴 MACD SELL signal - bearish crossover`);
+            return 'SELL';
+        }
+        if (sellConditions.crossover === 'BEARISH_CROSSOVER' && crossover === 'BEARISH_CROSSOVER') {
+            reasoning.push(`🔴 MACD SELL signal - bearish crossover detected`);
+            return 'SELL';
+        }
+        reasoning.push(`⚪ MACD HOLD - signal: ${signal}, crossover: ${crossover}`);
+        return 'HOLD';
     }
     calculatePositionSize(price, recommendation, confidence) {
         if (recommendation === 'HOLD' || recommendation === 'WATCH' || price <= 0) {
@@ -413,6 +666,285 @@ class TradingService {
             'NVDA', 'META', 'NFLX', 'AMD', 'CRM',
             'UBER', 'SPOT', 'ZOOM', 'SQ', 'PYPL'
         ];
+    }
+    async calculateHistoricalIndicators(priceData, indicators) {
+        const result = {};
+        for (const indicator of indicators) {
+            try {
+                switch (indicator) {
+                    case 'ema':
+                        result.ema = this.calculateEMA(priceData, 50);
+                        break;
+                    case 'rsi':
+                        result.rsi = this.calculateRSI(priceData, 14);
+                        break;
+                    case 'macd':
+                        result.macd = this.calculateMACD(priceData);
+                        break;
+                    case 'bollinger-bands':
+                        result.bollingerBands = this.calculateBollingerBands(priceData, 20, 2);
+                        break;
+                    case 'mfi':
+                        result.mfi = this.calculateMFI(priceData, 14);
+                        break;
+                    default:
+                        console.warn(`Historical calculation not implemented for ${indicator}`);
+                        result[indicator] = { signal: 'HOLD', value: 0 };
+                }
+            }
+            catch (error) {
+                console.error(`Error calculating ${indicator}:`, error);
+                result[indicator] = { signal: 'HOLD', value: 0 };
+            }
+        }
+        return result;
+    }
+    makeHistoricalTradingDecision(indicators, strategy, currentPrice) {
+        const reasoning = [];
+        let buySignals = 0;
+        let sellSignals = 0;
+        if (indicators.ema) {
+            const ema = indicators.ema;
+            if (currentPrice > ema.value) {
+                buySignals++;
+                reasoning.push(`🟢 Price above 50-day EMA ($${currentPrice.toFixed(2)} > $${ema.value.toFixed(2)})`);
+            }
+            else if (currentPrice < ema.value) {
+                sellSignals++;
+                reasoning.push(`🔴 Price below 50-day EMA ($${currentPrice.toFixed(2)} < $${ema.value.toFixed(2)})`);
+            }
+        }
+        if (indicators.rsi) {
+            const rsi = indicators.rsi;
+            if (rsi.value < 30) {
+                buySignals++;
+                reasoning.push(`🟢 RSI oversold (${rsi.value.toFixed(1)})`);
+            }
+            else if (rsi.value > 70) {
+                sellSignals++;
+                reasoning.push(`🔴 RSI overbought (${rsi.value.toFixed(1)})`);
+            }
+            else if (rsi.value < 50 && strategy.indicators.includes('macd')) {
+                buySignals += 0.5;
+                reasoning.push(`🟡 RSI below midline (${rsi.value.toFixed(1)}) - bullish bias`);
+            }
+            else if (rsi.value > 50 && strategy.indicators.includes('macd')) {
+                sellSignals += 0.5;
+                reasoning.push(`🟡 RSI above midline (${rsi.value.toFixed(1)}) - bearish bias`);
+            }
+        }
+        if (indicators.macd) {
+            const macd = indicators.macd;
+            if (macd.signal === 'BUY') {
+                buySignals++;
+                reasoning.push(`🟢 MACD bullish crossover`);
+            }
+            else if (macd.signal === 'SELL') {
+                sellSignals++;
+                reasoning.push(`🔴 MACD bearish crossover`);
+            }
+            else if (macd.current > macd.signalCurrent) {
+                buySignals += 0.5;
+                reasoning.push(`🟡 MACD above signal line - bullish momentum`);
+            }
+            else if (macd.current < macd.signalCurrent) {
+                sellSignals += 0.5;
+                reasoning.push(`🟡 MACD below signal line - bearish momentum`);
+            }
+        }
+        let recommendation = 'HOLD';
+        let confidence = 'LOW';
+        const isSingleIndicatorStrategy = strategy.indicators.length === 1;
+        const isDoubleIndicatorStrategy = strategy.indicators.length === 2;
+        if (buySignals >= 2) {
+            recommendation = 'BUY';
+            confidence = buySignals >= 3 ? 'HIGH' : 'MEDIUM';
+        }
+        else if (sellSignals >= 2) {
+            recommendation = 'SELL';
+            confidence = sellSignals >= 3 ? 'HIGH' : 'MEDIUM';
+        }
+        else if (buySignals >= 1.5 && isDoubleIndicatorStrategy) {
+            recommendation = 'BUY';
+            confidence = 'MEDIUM';
+        }
+        else if (sellSignals >= 1.5 && isDoubleIndicatorStrategy) {
+            recommendation = 'SELL';
+            confidence = 'MEDIUM';
+        }
+        else if (buySignals > sellSignals && buySignals > 0) {
+            if (isSingleIndicatorStrategy) {
+                recommendation = 'BUY';
+                confidence = 'MEDIUM';
+            }
+            else {
+                recommendation = 'WATCH';
+                reasoning.push(`⚪ Weak bullish signals`);
+            }
+        }
+        else if (sellSignals > buySignals && sellSignals > 0) {
+            if (isSingleIndicatorStrategy) {
+                recommendation = 'SELL';
+                confidence = 'MEDIUM';
+            }
+            else {
+                recommendation = 'WATCH';
+                reasoning.push(`⚪ Weak bearish signals`);
+            }
+        }
+        if (reasoning.length === 0) {
+            reasoning.push(`⚪ No clear signals - holding position`);
+        }
+        return { recommendation, confidence, reasoning };
+    }
+    calculateEMA(priceData, period) {
+        if (priceData.length < period) {
+            return { value: 0, trend: 'NEUTRAL', signal: 'HOLD' };
+        }
+        const prices = priceData.map(d => d.close);
+        const multiplier = 2 / (period + 1);
+        let ema = prices.slice(0, period).reduce((sum, price) => sum + price, 0) / period;
+        for (let i = period; i < prices.length; i++) {
+            ema = (prices[i] * multiplier) + (ema * (1 - multiplier));
+        }
+        const currentPrice = prices[prices.length - 1];
+        const previousEma = prices.length > period + 1 ?
+            (prices[prices.length - 2] * multiplier) + (ema * (1 - multiplier)) : ema;
+        const trend = ema > previousEma ? 'BULLISH' : ema < previousEma ? 'BEARISH' : 'NEUTRAL';
+        const signal = currentPrice > ema ? 'BUY' : currentPrice < ema ? 'SELL' : 'HOLD';
+        return { value: ema, trend, signal };
+    }
+    calculateRSI(priceData, period = 14) {
+        if (priceData.length < period + 1) {
+            return { value: 50, signal: 'HOLD' };
+        }
+        const prices = priceData.map(d => d.close);
+        const gains = [];
+        const losses = [];
+        for (let i = 1; i < prices.length; i++) {
+            const change = prices[i] - prices[i - 1];
+            gains.push(change > 0 ? change : 0);
+            losses.push(change < 0 ? Math.abs(change) : 0);
+        }
+        const avgGain = gains.slice(-period).reduce((sum, gain) => sum + gain, 0) / period;
+        const avgLoss = losses.slice(-period).reduce((sum, loss) => sum + loss, 0) / period;
+        const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+        const rsi = 100 - (100 / (1 + rs));
+        let signal = 'HOLD';
+        if (rsi < 30)
+            signal = 'BUY';
+        else if (rsi > 70)
+            signal = 'SELL';
+        return { value: rsi, signal };
+    }
+    calculateMACD(priceData) {
+        if (priceData.length < 35) {
+            return {
+                signal: 'HOLD',
+                current: 0,
+                signalCurrent: 0,
+                histogram: 0,
+                macd: 0,
+                signalLine: 0
+            };
+        }
+        const prices = priceData.map(d => d.close);
+        const macdValues = [];
+        const startIndex = Math.max(0, prices.length - 20);
+        for (let i = startIndex; i < prices.length; i++) {
+            const periodPrices = prices.slice(0, i + 1);
+            if (periodPrices.length >= 26) {
+                const ema12 = this.calculateSimpleEMA(periodPrices, 12);
+                const ema26 = this.calculateSimpleEMA(periodPrices, 26);
+                macdValues.push(ema12 - ema26);
+            }
+        }
+        if (macdValues.length < 9) {
+            return {
+                signal: 'HOLD',
+                current: 0,
+                signalCurrent: 0,
+                histogram: 0,
+                macd: 0,
+                signalLine: 0
+            };
+        }
+        const currentMACD = macdValues[macdValues.length - 1];
+        const signalLine = this.calculateSimpleEMA(macdValues, 9);
+        const histogram = currentMACD - signalLine;
+        let signal = 'HOLD';
+        if (currentMACD > signalLine && histogram > 0)
+            signal = 'BUY';
+        else if (currentMACD < signalLine && histogram < 0)
+            signal = 'SELL';
+        return {
+            signal,
+            current: currentMACD,
+            signalCurrent: signalLine,
+            histogram,
+            macd: currentMACD,
+            signalLine
+        };
+    }
+    calculateBollingerBands(priceData, period, multiplier) {
+        if (priceData.length < period) {
+            return { signal: 'HOLD', upper: 0, middle: 0, lower: 0 };
+        }
+        const prices = priceData.map(d => d.close);
+        const recentPrices = prices.slice(-period);
+        const middle = recentPrices.reduce((sum, price) => sum + price, 0) / period;
+        const variance = recentPrices.reduce((sum, price) => sum + Math.pow(price - middle, 2), 0) / period;
+        const stdDev = Math.sqrt(variance);
+        const upper = middle + (stdDev * multiplier);
+        const lower = middle - (stdDev * multiplier);
+        const currentPrice = prices[prices.length - 1];
+        let signal = 'HOLD';
+        if (currentPrice <= lower)
+            signal = 'BUY';
+        else if (currentPrice >= upper)
+            signal = 'SELL';
+        return { signal, upper, middle, lower };
+    }
+    calculateMFI(priceData, period) {
+        if (priceData.length < period + 1) {
+            return { mfi: 50, signal: 'HOLD' };
+        }
+        const recentData = priceData.slice(-period - 1);
+        let positiveFlow = 0;
+        let negativeFlow = 0;
+        for (let i = 1; i < recentData.length; i++) {
+            const current = recentData[i];
+            const previous = recentData[i - 1];
+            const typicalPrice = (current.high + current.low + current.close) / 3;
+            const previousTypicalPrice = (previous.high + previous.low + previous.close) / 3;
+            const rawMoneyFlow = typicalPrice * current.volume;
+            if (typicalPrice > previousTypicalPrice) {
+                positiveFlow += rawMoneyFlow;
+            }
+            else if (typicalPrice < previousTypicalPrice) {
+                negativeFlow += rawMoneyFlow;
+            }
+        }
+        const moneyFlowRatio = positiveFlow / (negativeFlow || 1);
+        const mfi = 100 - (100 / (1 + moneyFlowRatio));
+        let signal = 'HOLD';
+        if (mfi < 20)
+            signal = 'BUY';
+        else if (mfi > 80)
+            signal = 'SELL';
+        return { mfi, signal };
+    }
+    calculateSimpleEMA(values, period) {
+        if (values.length === 0)
+            return 0;
+        if (values.length === 1)
+            return values[0];
+        const multiplier = 2 / (period + 1);
+        let ema = values[0];
+        for (let i = 1; i < values.length; i++) {
+            ema = (values[i] * multiplier) + (ema * (1 - multiplier));
+        }
+        return ema;
     }
 }
 exports.TradingService = TradingService;

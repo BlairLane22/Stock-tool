@@ -1,17 +1,20 @@
 import { Request, Response } from 'express';
 import { DatabasePortfolioService } from '../services/databasePortfolioService';
 import { TradingService } from '../services/tradingService';
+import { BacktestingService } from '../services/backtestingService';
 import { BackendService } from '../services/backendService';
 
 export class PortfolioController {
   private portfolioService: DatabasePortfolioService;
   private tradingService: TradingService;
   private backendService: BackendService;
+  private backtestingService: BacktestingService;
 
   constructor() {
     this.portfolioService = new DatabasePortfolioService();
     this.tradingService = new TradingService();
     this.backendService = new BackendService();
+    this.backtestingService = new BacktestingService();
   }
 
   // Get all portfolios for a user
@@ -705,6 +708,62 @@ export class PortfolioController {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to analyze stock with strategy'
+      });
+    }
+  };
+
+  // Backtesting endpoint
+  runBacktest = async (req: Request, res: Response) => {
+    try {
+      const { symbol, strategyId } = req.params;
+      const { startingCapital = 10000, commission = 0, slippage = 0 } = req.body;
+
+      if (!symbol || !strategyId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Symbol and strategy ID are required'
+        });
+      }
+
+      console.log(`🔄 Starting backtest for ${symbol} with strategy ${strategyId}`);
+      console.log(`💰 Starting capital: $${startingCapital.toLocaleString()}`);
+
+      const backtestConfig = {
+        symbol: symbol.toUpperCase(),
+        strategyId,
+        startingCapital: parseFloat(startingCapital),
+        commission: parseFloat(commission),
+        slippage: parseFloat(slippage)
+      };
+
+      const result = await this.backtestingService.runBacktest(backtestConfig);
+
+      res.json({
+        success: true,
+        data: result,
+        message: `Backtest completed: ${result.totalReturnPercent.toFixed(2)}% return over ${result.totalTrades} trades`
+      });
+    } catch (error) {
+      console.error('❌ Backtest failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to run backtest'
+      });
+    }
+  };
+
+  // Get available symbols for backtesting
+  getBacktestSymbols = async (req: Request, res: Response) => {
+    try {
+      const response = await this.backendService.getBacktestSymbols();
+      res.json({
+        success: true,
+        data: response
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get backtest symbols'
       });
     }
   };

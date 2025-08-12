@@ -33,5 +33,7 @@ router.put('/:id/watchlist/:symbol/strategy', portfolioController.assignStrategy
 router.put('/:id/holdings/:holdingId/strategy', portfolioController.assignStrategyToHolding);
 router.get('/analyze/:symbol/strategy/:strategyId', portfolioController.analyzeWithStrategy);
 router.post('/analyze/:symbol/strategy/:strategyId', portfolioController.analyzeWithStrategy);
+router.post('/backtest/:symbol/strategy/:strategyId', portfolioController.runBacktest);
+router.get('/backtest/symbols', portfolioController.getBacktestSymbols);
 exports.default = router;
 //# sourceMappingURL=portfolio.js.map

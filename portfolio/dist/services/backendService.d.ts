@@ -29,5 +29,6 @@ export declare class BackendService {
         type: string;
         params?: any;
     }>;
+    getBacktestSymbols(): Promise<any>;
 }
 //# sourceMappingURL=backendService.d.ts.map

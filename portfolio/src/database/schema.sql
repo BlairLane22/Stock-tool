@@ -174,6 +174,26 @@ VALUES (
 INSERT OR IGNORE INTO trading_strategies (id, portfolio_id, name, description, indicators, buy_conditions, sell_conditions, risk_management)
 VALUES
 (
+    'strategy-rsi-only',
+    'portfolio-blair-main',
+    'RSI Only',
+    'Pure RSI strategy - buy when oversold (RSI < 30), sell when overbought (RSI > 70)',
+    '["rsi"]',
+    '{"rsi_below": 30}',
+    '{"rsi_above": 70}',
+    '{"stop_loss_percent": 5, "take_profit_percent": 10}'
+),
+(
+    'strategy-macd-only',
+    'portfolio-blair-main',
+    'MACD Only',
+    'Pure MACD strategy - buy on bullish crossover, sell on bearish crossover',
+    '["macd"]',
+    '{"macd_signal": "BUY", "crossover": "BULLISH_CROSSOVER"}',
+    '{"macd_signal": "SELL", "crossover": "BEARISH_CROSSOVER"}',
+    '{"stop_loss_percent": 6, "take_profit_percent": 12}'
+),
+(
     'strategy-bollinger-only',
     'portfolio-blair-main',
     'Bollinger Bands Only',
@@ -214,6 +234,26 @@ VALUES
     '{"stop_loss_percent": 8, "take_profit_percent": 20}'
 ),
 (
+    'strategy-mfi-only',
+    'portfolio-blair-main',
+    'MFI Only',
+    'Pure Money Flow Index strategy - buy when MFI < 20, sell when MFI > 80',
+    '["mfi"]',
+    '{"mfi_below": 20}',
+    '{"mfi_above": 80}',
+    '{"stop_loss_percent": 5, "take_profit_percent": 12}'
+),
+(
+    'strategy-atr-only',
+    'portfolio-blair-main',
+    'ATR Only',
+    'Pure Average True Range strategy - volatility-based position sizing',
+    '["atr"]',
+    '{"atr_signal": "BUY", "volatility": "NORMAL"}',
+    '{"atr_signal": "SELL", "volatility": "HIGH"}',
+    '{"stop_loss_percent": 8, "take_profit_percent": 15}'
+),
+(
     'strategy-all-indicators',
     'portfolio-blair-main',
     'Full Analysis',
@@ -222,6 +262,16 @@ VALUES
     '{"min_buy_signals": 3, "confidence": "MEDIUM"}',
     '{"min_sell_signals": 3, "confidence": "MEDIUM"}',
     '{"stop_loss_percent": 5, "take_profit_percent": 10}'
+),
+(
+    'strategy-ema-50-crossover',
+    'portfolio-blair-main',
+    '50-Day EMA Crossover',
+    'Pure EMA strategy based on 50-day moving average crossovers and trend confirmation',
+    '["ema"]',
+    '{"ema_crossover": "bullish", "price_above_ema": true, "ema_slope": "rising"}',
+    '{"ema_crossover": "bearish", "price_below_ema": true, "ema_slope": "falling"}',
+    '{"stop_loss_percent": 4, "take_profit_percent": 12, "trailing_stop": true}'
 );
 
 -- Create triggers to automatically update timestamps

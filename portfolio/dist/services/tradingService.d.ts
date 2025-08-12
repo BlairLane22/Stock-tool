@@ -27,14 +27,29 @@ export declare class TradingService {
     private backendService;
     private backendApiUrl;
     constructor();
+    analyzeHistoricalData(symbol: string, strategyId: string, historicalData: any, currentDate: string, lookbackDays?: number): Promise<TradingAnalysis>;
     analyzeStock(symbol: string, strategyId?: string, useMockData?: boolean): Promise<TradingAnalysis>;
     private mapIndicatorName;
     private mapBackendIndicatorName;
     private getIndicatorLegacy;
     private makeStrategyDecision;
     private makeDecision;
+    private isIndividualIndicatorStrategy;
+    private evaluateIndividualIndicatorStrategy;
+    private evaluateBollingerStrategy;
+    private evaluateMFIStrategy;
+    private evaluateRSIStrategy;
+    private evaluateMACDStrategy;
     private calculatePositionSize;
     analyzePortfolioOpportunities(symbols: string[]): Promise<TradingAnalysis[]>;
     getPopularStocks(): string[];
+    private calculateHistoricalIndicators;
+    private makeHistoricalTradingDecision;
+    private calculateEMA;
+    private calculateRSI;
+    private calculateMACD;
+    private calculateBollingerBands;
+    private calculateMFI;
+    private calculateSimpleEMA;
 }
 //# sourceMappingURL=tradingService.d.ts.map

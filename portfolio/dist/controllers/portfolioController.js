@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PortfolioController = void 0;
 const databasePortfolioService_1 = require("../services/databasePortfolioService");
 const tradingService_1 = require("../services/tradingService");
+const backtestingService_1 = require("../services/backtestingService");
 const backendService_1 = require("../services/backendService");
 class PortfolioController {
     constructor() {
@@ -612,9 +613,59 @@ class PortfolioController {
                 });
             }
         };
+        this.runBacktest = async (req, res) => {
+            try {
+                const { symbol, strategyId } = req.params;
+                const { startingCapital = 10000, commission = 0, slippage = 0 } = req.body;
+                if (!symbol || !strategyId) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Symbol and strategy ID are required'
+                    });
+                }
+                console.log(`🔄 Starting backtest for ${symbol} with strategy ${strategyId}`);
+                console.log(`💰 Starting capital: $${startingCapital.toLocaleString()}`);
+                const backtestConfig = {
+                    symbol: symbol.toUpperCase(),
+                    strategyId,
+                    startingCapital: parseFloat(startingCapital),
+                    commission: parseFloat(commission),
+                    slippage: parseFloat(slippage)
+                };
+                const result = await this.backtestingService.runBacktest(backtestConfig);
+                res.json({
+                    success: true,
+                    data: result,
+                    message: `Backtest completed: ${result.totalReturnPercent.toFixed(2)}% return over ${result.totalTrades} trades`
+                });
+            }
+            catch (error) {
+                console.error('❌ Backtest failed:', error);
+                res.status(500).json({
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Failed to run backtest'
+                });
+            }
+        };
+        this.getBacktestSymbols = async (req, res) => {
+            try {
+                const response = await this.backendService.getBacktestSymbols();
+                res.json({
+                    success: true,
+                    data: response
+                });
+            }
+            catch (error) {
+                res.status(500).json({
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Failed to get backtest symbols'
+                });
+            }
+        };
         this.portfolioService = new databasePortfolioService_1.DatabasePortfolioService();
         this.tradingService = new tradingService_1.TradingService();
         this.backendService = new backendService_1.BackendService();
+        this.backtestingService = new backtestingService_1.BacktestingService();
     }
 }
 exports.PortfolioController = PortfolioController;

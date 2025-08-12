@@ -3,6 +3,7 @@ export declare class PortfolioController {
     private portfolioService;
     private tradingService;
     private backendService;
+    private backtestingService;
     constructor();
     getAllPortfolios: (req: Request, res: Response) => Promise<void>;
     createPortfolio: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
@@ -30,5 +31,7 @@ export declare class PortfolioController {
     assignStrategyToWatchlist: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
     assignStrategyToHolding: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
     analyzeWithStrategy: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+    runBacktest: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+    getBacktestSymbols: (req: Request, res: Response) => Promise<void>;
 }
 //# sourceMappingURL=portfolioController.d.ts.map

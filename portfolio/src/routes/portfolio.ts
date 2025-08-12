@@ -49,4 +49,8 @@ router.put('/:id/holdings/:holdingId/strategy', portfolioController.assignStrate
 router.get('/analyze/:symbol/strategy/:strategyId', portfolioController.analyzeWithStrategy);
 router.post('/analyze/:symbol/strategy/:strategyId', portfolioController.analyzeWithStrategy);
 
+// Backtesting routes
+router.post('/backtest/:symbol/strategy/:strategyId', portfolioController.runBacktest);
+router.get('/backtest/symbols', portfolioController.getBacktestSymbols);
+
 export default router;
