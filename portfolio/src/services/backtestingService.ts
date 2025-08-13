@@ -229,13 +229,17 @@ export class BacktestingService {
       const winRate = completedTrades.length > 0 ? winningTrades / completedTrades.length : 0;
       
       // Calculate summary statistics
-      const bestTrade = completedTrades.reduce((best, trade) => 
-        (trade.returnPercent || 0) > (best.returnPercent || 0) ? trade : best, completedTrades[0]);
-      const worstTrade = completedTrades.reduce((worst, trade) => 
-        (trade.returnPercent || 0) < (worst.returnPercent || 0) ? trade : worst, completedTrades[0]);
-      
-      const avgTradeReturn = completedTrades.length > 0 
-        ? completedTrades.reduce((sum, t) => sum + (t.returnPercent || 0), 0) / completedTrades.length 
+      const bestTrade = completedTrades.length > 0
+        ? completedTrades.reduce((best, trade) =>
+            (trade.returnPercent || 0) > (best.returnPercent || 0) ? trade : best, completedTrades[0])
+        : null;
+      const worstTrade = completedTrades.length > 0
+        ? completedTrades.reduce((worst, trade) =>
+            (trade.returnPercent || 0) < (worst.returnPercent || 0) ? trade : worst, completedTrades[0])
+        : null;
+
+      const avgTradeReturn = completedTrades.length > 0
+        ? completedTrades.reduce((sum, t) => sum + (t.returnPercent || 0), 0) / completedTrades.length
         : 0;
       
       const avgHoldingPeriod = completedTrades.length > 0
@@ -270,8 +274,8 @@ export class BacktestingService {
         trades,
         dailyReturns,
         summary: {
-          bestTrade,
-          worstTrade,
+          bestTrade: bestTrade || { date: '', action: 'BUY', price: 0, quantity: 0, value: 0, reason: 'No trades', portfolioValue: 0, returnPercent: 0, holdingDays: 0 },
+          worstTrade: worstTrade || { date: '', action: 'SELL', price: 0, quantity: 0, value: 0, reason: 'No trades', portfolioValue: 0, returnPercent: 0, holdingDays: 0 },
           avgTradeReturn,
           avgHoldingPeriod,
           profitFactor

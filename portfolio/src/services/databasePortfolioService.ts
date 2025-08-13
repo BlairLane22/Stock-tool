@@ -655,6 +655,29 @@ export class DatabasePortfolioService {
   }
 
   /**
+   * Get all trading strategies (for backtesting script)
+   */
+  async getAllTradingStrategies(): Promise<TradingStrategy[]> {
+    const strategies = await query<any>(
+      'SELECT * FROM trading_strategies ORDER BY name'
+    );
+
+    return strategies.map(strategy => ({
+      id: strategy.id,
+      portfolioId: strategy.portfolio_id,
+      name: strategy.name,
+      description: strategy.description,
+      indicators: JSON.parse(strategy.indicators),
+      buyConditions: JSON.parse(strategy.buy_conditions),
+      sellConditions: JSON.parse(strategy.sell_conditions),
+      riskManagement: JSON.parse(strategy.risk_management),
+      isActive: strategy.is_active,
+      createdDate: strategy.created_date,
+      updatedDate: strategy.updated_date
+    }));
+  }
+
+  /**
    * Create a new trading strategy
    */
   async createTradingStrategy(data: {

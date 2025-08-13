@@ -81,6 +81,7 @@ export declare class DatabasePortfolioService {
     getTradingDecisions(portfolioId: string, limit?: number): Promise<TradingDecision[]>;
     getTradingStrategies(portfolioId: string): Promise<TradingStrategy[]>;
     getTradingStrategy(id: string): Promise<TradingStrategy | null>;
+    getAllTradingStrategies(): Promise<TradingStrategy[]>;
     createTradingStrategy(data: {
         portfolioId: string;
         name: string;

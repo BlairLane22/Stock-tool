@@ -390,6 +390,22 @@ class DatabasePortfolioService {
             updatedDate: strategy.updated_date
         };
     }
+    async getAllTradingStrategies() {
+        const strategies = await (0, connection_1.query)('SELECT * FROM trading_strategies ORDER BY name');
+        return strategies.map(strategy => ({
+            id: strategy.id,
+            portfolioId: strategy.portfolio_id,
+            name: strategy.name,
+            description: strategy.description,
+            indicators: JSON.parse(strategy.indicators),
+            buyConditions: JSON.parse(strategy.buy_conditions),
+            sellConditions: JSON.parse(strategy.sell_conditions),
+            riskManagement: JSON.parse(strategy.risk_management),
+            isActive: strategy.is_active,
+            createdDate: strategy.created_date,
+            updatedDate: strategy.updated_date
+        }));
+    }
     async createTradingStrategy(data) {
         const strategyId = (0, uuid_1.v4)();
         await (0, connection_1.execute)(`INSERT INTO trading_strategies (id, portfolio_id, name, description, indicators, buy_conditions, sell_conditions, risk_management)

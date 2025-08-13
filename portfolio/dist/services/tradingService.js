@@ -310,7 +310,7 @@ class TradingService {
             indicatorsType: typeof strategy.indicators,
             isIndividual: this.isIndividualIndicatorStrategy(strategy)
         });
-        if (this.isIndividualIndicatorStrategy(strategy)) {
+        if (this.isIndividualIndicatorStrategy(strategy) || strategy.name?.includes('Turtle-Style Donchian + ATR')) {
             console.log('🎯 DEBUG: Using individual indicator strategy logic');
             recommendation = this.evaluateIndividualIndicatorStrategy(strategy, indicators, reasoning);
         }
@@ -544,6 +544,8 @@ class TradingService {
                 return this.evaluateThreeTierTrendStrategy(indicators, buyConditions, sellConditions, reasoning);
             case 'donchian':
                 return this.evaluateDonchianBreakoutStrategy(indicators.donchian, buyConditions, sellConditions, reasoning);
+            case 'turtle-donchian-atr':
+                return this.evaluateTurtleDonchianATRStrategy(indicators, buyConditions, sellConditions, reasoning);
             default:
                 reasoning.push(`⚠️ Unknown individual indicator strategy: ${indicatorType}`);
                 return 'HOLD';
@@ -604,11 +606,11 @@ class TradingService {
         return 'HOLD';
     }
     evaluateRSIStrategy(rsiData, buyConditions, sellConditions, reasoning) {
-        if (!rsiData || typeof rsiData.rsi !== 'number') {
-            reasoning.push(`⚠️ RSI data not available`);
+        const rsiValue = rsiData?.rsi || rsiData?.value;
+        if (!rsiData || typeof rsiValue !== 'number') {
+            reasoning.push(`⚠️ RSI data not available - received: ${JSON.stringify(rsiData)}`);
             return 'HOLD';
         }
-        const rsiValue = rsiData.rsi;
         if (buyConditions.rsi_below && rsiValue < buyConditions.rsi_below) {
             reasoning.push(`🟢 RSI BUY signal - RSI ${rsiValue.toFixed(1)} below ${buyConditions.rsi_below} (oversold)`);
             return 'BUY';
@@ -712,6 +714,97 @@ class TradingService {
         }
         reasoning.push(`⚪ DONCHIAN HOLD: Price near middle channel ($${middleChannel.toFixed(2)}). Waiting for directional breakout.`);
         return 'HOLD';
+    }
+    evaluateTurtleDonchianATRStrategy(indicators, buyConditions, sellConditions, reasoning) {
+        const donchianData = indicators.donchian;
+        const atrData = indicators.atr;
+        if (!donchianData || !atrData) {
+            reasoning.push(`⚠️ Turtle strategy requires both Donchian Channels and ATR data`);
+            return 'HOLD';
+        }
+        const currentPrice = donchianData.current_price || donchianData.price || 0;
+        const upper20 = donchianData.upper || 0;
+        const lower20 = donchianData.lower || 0;
+        const middle = donchianData.middle || 0;
+        const upper10 = this.calculate10DayHigh(donchianData, currentPrice);
+        const lower10 = this.calculate10DayLow(donchianData, currentPrice);
+        const atrValue = atrData.value || atrData.atr || atrData.current || 0;
+        if (!currentPrice || !upper20 || !lower20 || !atrValue) {
+            reasoning.push(`❌ Missing Turtle strategy data: price=${currentPrice}, upper=${upper20}, lower=${lower20}, ATR=${atrValue}`);
+            return 'HOLD';
+        }
+        reasoning.push(`🐢 Turtle Analysis: Price=$${currentPrice.toFixed(2)}, 20H=$${upper20.toFixed(2)}, 20L=$${lower20.toFixed(2)}, 10H=$${upper10.toFixed(2)}, 10L=$${lower10.toFixed(2)}, ATR=$${atrValue.toFixed(2)}`);
+        const volatilityStop = 2 * atrValue;
+        const pyramidIncrement = 0.5 * atrValue;
+        const accountEquity = 100000;
+        const riskPerTrade = 0.01;
+        const dollarRisk = accountEquity * riskPerTrade;
+        const positionSize = Math.floor(dollarRisk / volatilityStop);
+        if (currentPrice >= upper20) {
+            const stopPrice = currentPrice - volatilityStop;
+            const riskRewardRatio = (upper20 - stopPrice) / volatilityStop;
+            reasoning.push(`🚀 TURTLE LONG ENTRY: 20-day breakout ($${currentPrice.toFixed(2)} >= $${upper20.toFixed(2)})`);
+            reasoning.push(`📊 ATR Position Sizing: ${positionSize} shares (1% risk = $${dollarRisk.toFixed(0)})`);
+            reasoning.push(`🛡️ 2×ATR Stop Loss: $${stopPrice.toFixed(2)} (risk $${volatilityStop.toFixed(2)}/share)`);
+            reasoning.push(`📈 Risk/Reward: ${riskRewardRatio.toFixed(2)}:1`);
+            return 'BUY';
+        }
+        if (currentPrice <= lower20) {
+            const stopPrice = currentPrice + volatilityStop;
+            reasoning.push(`📉 TURTLE SHORT ENTRY: 20-day breakdown ($${currentPrice.toFixed(2)} <= $${lower20.toFixed(2)})`);
+            reasoning.push(`📊 ATR Position Sizing: ${positionSize} shares (1% risk = $${dollarRisk.toFixed(0)})`);
+            reasoning.push(`🛡️ 2×ATR Stop Loss: $${stopPrice.toFixed(2)} (risk $${volatilityStop.toFixed(2)}/share)`);
+            return 'SELL';
+        }
+        if (currentPrice <= lower10 && currentPrice > lower20) {
+            reasoning.push(`🔻 TURTLE LONG EXIT: 10-day breakdown ($${currentPrice.toFixed(2)} <= $${lower10.toFixed(2)})`);
+            reasoning.push(`📉 Exit signal: Close long positions on 10-day low break`);
+            return 'SELL';
+        }
+        if (currentPrice >= upper10 && currentPrice < upper20) {
+            reasoning.push(`🔺 TURTLE SHORT EXIT: 10-day breakout ($${currentPrice.toFixed(2)} >= $${upper10.toFixed(2)})`);
+            reasoning.push(`📈 Exit signal: Cover short positions on 10-day high break`);
+            return 'BUY';
+        }
+        const distanceFromEntry = Math.abs(currentPrice - middle);
+        const pyramidUnits = Math.floor(distanceFromEntry / pyramidIncrement);
+        if (pyramidUnits > 0 && pyramidUnits <= 3) {
+            if (currentPrice > upper20) {
+                reasoning.push(`🔺 TURTLE PYRAMID LONG: Add unit ${pyramidUnits + 1} (+${(pyramidUnits * pyramidIncrement).toFixed(2)} from entry)`);
+                reasoning.push(`📊 Pyramid Size: ${Math.floor(positionSize * 0.5)} shares (reduced size for additional units)`);
+                return 'BUY';
+            }
+            else if (currentPrice < lower20) {
+                reasoning.push(`🔻 TURTLE PYRAMID SHORT: Add unit ${pyramidUnits + 1} (-${(pyramidUnits * pyramidIncrement).toFixed(2)} from entry)`);
+                reasoning.push(`📊 Pyramid Size: ${Math.floor(positionSize * 0.5)} shares (reduced size for additional units)`);
+                return 'SELL';
+            }
+        }
+        const breakoutThreshold = atrValue * 0.25;
+        if (Math.abs(currentPrice - upper20) <= breakoutThreshold) {
+            reasoning.push(`👀 TURTLE WATCH LONG: Near 20-day high breakout (${Math.abs(currentPrice - upper20).toFixed(2)} from breakout)`);
+            reasoning.push(`🎯 Breakout Level: $${upper20.toFixed(2)} | Current: $${currentPrice.toFixed(2)}`);
+            return 'WATCH';
+        }
+        if (Math.abs(currentPrice - lower20) <= breakoutThreshold) {
+            reasoning.push(`👀 TURTLE WATCH SHORT: Near 20-day low breakdown (${Math.abs(currentPrice - lower20).toFixed(2)} from breakdown)`);
+            reasoning.push(`🎯 Breakdown Level: $${lower20.toFixed(2)} | Current: $${currentPrice.toFixed(2)}`);
+            return 'WATCH';
+        }
+        const channelPosition = ((currentPrice - lower20) / (upper20 - lower20)) * 100;
+        reasoning.push(`⚪ TURTLE HOLD: Price in ${channelPosition.toFixed(1)}% of 20-day channel, waiting for breakout`);
+        reasoning.push(`📊 Next signals: Long>${upper20.toFixed(2)}, Short<${lower20.toFixed(2)}, Exit Long<${lower10.toFixed(2)}, Exit Short>${upper10.toFixed(2)}`);
+        return 'HOLD';
+    }
+    calculate10DayHigh(donchianData, currentPrice) {
+        const upper20 = donchianData.upper || 0;
+        const middle = donchianData.middle || 0;
+        return middle + ((upper20 - middle) * 0.75);
+    }
+    calculate10DayLow(donchianData, currentPrice) {
+        const lower20 = donchianData.lower || 0;
+        const middle = donchianData.middle || 0;
+        return middle - ((middle - lower20) * 0.75);
     }
     evaluateThreeTierTrendStrategy(indicators, buyConditions, sellConditions, reasoning) {
         try {
@@ -859,6 +952,9 @@ class TradingService {
                     case 'donchian':
                         result.donchian = this.calculateDonchianChannels(priceData, 20);
                         break;
+                    case 'atr':
+                        result.atr = this.calculateATR(priceData, 20);
+                        break;
                     default:
                         console.warn(`Historical calculation not implemented for ${indicator}`);
                         result[indicator] = { signal: 'HOLD', value: 0 };
@@ -879,7 +975,7 @@ class TradingService {
             indicatorsType: typeof strategy.indicators,
             isIndividual: this.isIndividualIndicatorStrategy(strategy)
         });
-        if (this.isIndividualIndicatorStrategy(strategy)) {
+        if (this.isIndividualIndicatorStrategy(strategy) || strategy.name?.includes('Turtle-Style Donchian + ATR')) {
             console.log('🎯 DEBUG makeHistoricalTradingDecision: Using individual indicator strategy logic');
             const recommendation = this.evaluateIndividualIndicatorStrategy(strategy, indicators, reasoning);
             return {
@@ -1133,6 +1229,38 @@ class TradingService {
             ema = (values[i] * multiplier) + (ema * (1 - multiplier));
         }
         return ema;
+    }
+    calculateATR(priceData, period = 20) {
+        if (priceData.length < period + 1) {
+            return {
+                value: 0,
+                current: 0,
+                signal: 'HOLD',
+                period: period
+            };
+        }
+        const trueRanges = [];
+        for (let i = 1; i < priceData.length; i++) {
+            const current = priceData[i];
+            const previous = priceData[i - 1];
+            const high = current.high;
+            const low = current.low;
+            const prevClose = previous.close;
+            const tr1 = high - low;
+            const tr2 = Math.abs(high - prevClose);
+            const tr3 = Math.abs(low - prevClose);
+            const trueRange = Math.max(tr1, tr2, tr3);
+            trueRanges.push(trueRange);
+        }
+        const recentTRs = trueRanges.slice(-period);
+        const atrValue = recentTRs.reduce((sum, tr) => sum + tr, 0) / recentTRs.length;
+        return {
+            value: atrValue,
+            current: atrValue,
+            signal: 'NEUTRAL',
+            period: period,
+            interpretation: atrValue > 2 ? 'HIGH_VOLATILITY' : atrValue < 0.5 ? 'LOW_VOLATILITY' : 'NORMAL_VOLATILITY'
+        };
     }
     calculateDonchianChannels(priceData, period = 20) {
         if (priceData.length < period) {

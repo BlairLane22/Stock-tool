@@ -25,6 +25,7 @@ router.get('/analyze/stock/:symbol', portfolioController.analyzeStock);
 router.post('/analyze/multiple', portfolioController.analyzeMultipleStocks);
 router.post('/analyze/popular', portfolioController.getPopularStocks);
 router.get('/analyze/popular', portfolioController.getPopularStocks);
+router.get('/strategies/all', portfolioController.getAllTradingStrategies);
 router.get('/:id/strategies', portfolioController.getTradingStrategies);
 router.post('/:id/strategies', portfolioController.createTradingStrategy);
 router.put('/strategies/:strategyId', portfolioController.updateTradingStrategy);

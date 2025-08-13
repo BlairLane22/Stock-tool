@@ -35,7 +35,8 @@ router.post('/analyze/multiple', portfolioController.analyzeMultipleStocks);
 router.post('/analyze/popular', portfolioController.getPopularStocks);
 router.get('/analyze/popular', portfolioController.getPopularStocks); // GET version for browser
 
-// Trading strategies
+// Trading strategies (specific routes first to avoid parameter matching)
+router.get('/strategies/all', portfolioController.getAllTradingStrategies); // Get all strategies (for backtesting script)
 router.get('/:id/strategies', portfolioController.getTradingStrategies);
 router.post('/:id/strategies', portfolioController.createTradingStrategy);
 router.put('/strategies/:strategyId', portfolioController.updateTradingStrategy);

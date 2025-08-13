@@ -532,6 +532,26 @@ export class PortfolioController {
     }
   };
 
+  getAllTradingStrategies = async (req: Request, res: Response) => {
+    try {
+      console.log('🔍 DEBUG: getAllTradingStrategies called');
+      const strategies = await this.portfolioService.getAllTradingStrategies();
+      console.log(`✅ DEBUG: Found ${strategies.length} strategies`);
+
+      res.json({
+        success: true,
+        data: strategies,
+        count: strategies.length
+      });
+    } catch (error) {
+      console.error('❌ DEBUG: Error in getAllTradingStrategies:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get all trading strategies'
+      });
+    }
+  };
+
   createTradingStrategy = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

@@ -1771,7 +1771,8 @@ app.get('/api/backtest/data/:symbol', (req, res) => {
       'TSLA': 'tsla-full-data.json',
       'UBER': 'uber-full-data.json',
       'GPRO': 'gpro-full-data.json',
-      'BB': 'bb-full-data.json'
+      'BB': 'bb-full-data.json',
+      'PYPL': 'pypl-full-data.json'
     };
 
     const fileName = dataFiles[symbolUpper];
@@ -1784,7 +1785,9 @@ app.get('/api/backtest/data/:symbol', (req, res) => {
 
     const fs = require('fs');
     const path = require('path');
-    const filePath = path.join(__dirname, '../../test-data', fileName);
+    // Handle both ts-node (development) and compiled (production) paths
+    const testDataDir = path.join(process.cwd(), 'test-data');
+    const filePath = path.join(testDataDir, fileName);
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({
@@ -1807,7 +1810,7 @@ app.get('/api/backtest/data/:symbol', (req, res) => {
 });
 
 app.get('/api/backtest/symbols', (req, res) => {
-  const availableSymbols = ['SPOT', 'AMD', 'NVDA', 'IBM', 'GOOGL', 'CRM', 'TSLA', 'UBER', 'GPRO', 'BB'];
+  const availableSymbols = ['SPOT', 'AMD', 'NVDA', 'IBM', 'GOOGL', 'CRM', 'TSLA', 'UBER', 'GPRO', 'BB', 'PYPL'];
   res.json({
     success: true,
     symbols: availableSymbols,
