@@ -272,6 +272,26 @@ VALUES
     '{"ema_crossover": "bullish", "price_above_ema": true, "ema_slope": "rising"}',
     '{"ema_crossover": "bearish", "price_below_ema": true, "ema_slope": "falling"}',
     '{"stop_loss_percent": 4, "take_profit_percent": 12, "trailing_stop": true}'
+),
+(
+    'strategy-three-tier-trend',
+    'portfolio-blair-main',
+    'Three-Tier Trend Trading (Pring-Inspired)',
+    'Comprehensive trend strategy using EMA (primary trend), MACD (intermediate), RSI (momentum), and volume confirmation',
+    '["ema", "macd", "rsi"]',
+    '{"primary_trend": "bullish", "intermediate_trend": "bullish", "rsi_pullback": true, "volume_confirmation": true}',
+    '{"primary_trend": "bearish", "intermediate_trend": "bearish", "rsi_bounce": true, "volume_confirmation": true}',
+    '{"stop_loss_percent": 3, "take_profit_percent": 15, "trailing_stop": true, "position_size_percent": 2}'
+),
+(
+    'strategy-donchian-breakout',
+    'portfolio-blair-main',
+    'Donchian Channels Breakout (Turtle Trading)',
+    'Classic breakout strategy using 20-day Donchian Channels based on Richard Dennis Turtle Trading System',
+    '["donchian"]',
+    '{"breakout_type": "upper_channel", "position": "UPPER_BREAKOUT", "signal": "BUY"}',
+    '{"breakout_type": "lower_channel", "position": "LOWER_BREAKOUT", "signal": "SELL"}',
+    '{"stop_loss_percent": 2, "take_profit_percent": 20, "trailing_stop": true, "position_size_percent": 1}'
 );
 
 -- Create triggers to automatically update timestamps

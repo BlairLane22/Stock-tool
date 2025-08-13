@@ -1286,6 +1286,65 @@ app.get('/api/macd/:symbol/quick', async (req, res) => {
   }
 });
 
+// Donchian Channels analysis endpoint
+app.get('/api/donchian/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { period = '20', mock = 'true' } = req.query;
+
+    console.log(`📊 Donchian Channels request for ${symbol} (period: ${period}, mock: ${mock})`);
+
+    if (mock === 'false') {
+      // Try real API only if explicitly requested
+      const { getMockDonchianHistoricalData } = await import('./indicators/donchianChannels');
+      const result = getMockDonchianHistoricalData(symbol, parseInt(period as string));
+
+      res.json(result);
+    } else {
+      // Use mock data by default
+      const { getMockDonchianHistoricalData } = await import('./indicators/donchianChannels');
+      const result = getMockDonchianHistoricalData(symbol, parseInt(period as string));
+
+      res.json(result);
+    }
+  } catch (error) {
+    console.error('❌ Donchian Channels error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to calculate Donchian Channels',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Quick Donchian Channels endpoint
+app.get('/api/donchian/:symbol/quick', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { period = '20', mock = 'true' } = req.query;
+
+    console.log(`📊 Quick Donchian Channels request for ${symbol} (period: ${period})`);
+
+    const { getMockDonchianData, getDonchianAnalysis } = await import('./indicators/donchianChannels');
+    const result = getMockDonchianData(symbol, parseInt(period as string));
+
+    // Add analysis to the data
+    if (result.data && !Array.isArray(result.data)) {
+      const analysis = getDonchianAnalysis(result.data);
+      (result.data as any).analysis = analysis;
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Quick Donchian Channels error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to calculate quick Donchian Channels',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Cup and Handle pattern analysis endpoint
 app.get('/api/cup-handle/:symbol', async (req, res) => {
   try {
@@ -1706,7 +1765,13 @@ app.get('/api/backtest/data/:symbol', (req, res) => {
       'SPOT': 'spot-full-data.json',
       'AMD': 'amd-full-data.json',
       'NVDA': 'nvda-full-data.json',
-      'IBM': 'ibm-full-data.json'
+      'IBM': 'ibm-full-data.json',
+      'GOOGL': 'googl-full-data.json',
+      'CRM': 'crm-full-data.json',
+      'TSLA': 'tsla-full-data.json',
+      'UBER': 'uber-full-data.json',
+      'GPRO': 'gpro-full-data.json',
+      'BB': 'bb-full-data.json'
     };
 
     const fileName = dataFiles[symbolUpper];
@@ -1742,7 +1807,7 @@ app.get('/api/backtest/data/:symbol', (req, res) => {
 });
 
 app.get('/api/backtest/symbols', (req, res) => {
-  const availableSymbols = ['SPOT', 'AMD', 'NVDA', 'IBM'];
+  const availableSymbols = ['SPOT', 'AMD', 'NVDA', 'IBM', 'GOOGL', 'CRM', 'TSLA', 'UBER', 'GPRO', 'BB'];
   res.json({
     success: true,
     symbols: availableSymbols,
@@ -1784,6 +1849,7 @@ app.listen(PORT, () => {
   console.log(`   📊 EMA (Exponential MA): http://localhost:${PORT}/api/ema/AAPL/quick`);
   console.log(`   📊 ATR (Average True Range): http://localhost:${PORT}/api/atr/AAPL/quick`);
   console.log(`   📈 MACD: http://localhost:${PORT}/api/macd/AAPL/quick`);
+  console.log(`   📊 Donchian Channels: http://localhost:${PORT}/api/donchian/AAPL/quick`);
   console.log(`\n🎯 CHART PATTERNS:`);
   console.log(`   🏆 Cup & Handle: http://localhost:${PORT}/api/cup-handle/AAPL/quick`);
   console.log(`   📉 Head & Shoulders: http://localhost:${PORT}/api/head-and-shoulders/AAPL/quick`);

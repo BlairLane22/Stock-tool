@@ -40,6 +40,9 @@ export declare class TradingService {
     private evaluateMFIStrategy;
     private evaluateRSIStrategy;
     private evaluateMACDStrategy;
+    private evaluateEMAStrategy;
+    private evaluateDonchianBreakoutStrategy;
+    private evaluateThreeTierTrendStrategy;
     private calculatePositionSize;
     analyzePortfolioOpportunities(symbols: string[]): Promise<TradingAnalysis[]>;
     getPopularStocks(): string[];
@@ -51,5 +54,6 @@ export declare class TradingService {
     private calculateBollingerBands;
     private calculateMFI;
     private calculateSimpleEMA;
+    private calculateDonchianChannels;
 }
 //# sourceMappingURL=tradingService.d.ts.map

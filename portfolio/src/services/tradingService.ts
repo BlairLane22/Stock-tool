@@ -414,7 +414,15 @@ export class TradingService {
     let recommendation: 'BUY' | 'SELL' | 'HOLD' | 'WATCH' = 'HOLD';
 
     // Handle individual indicator strategies with specific conditions
+    console.log('🔍 DEBUG: Checking individual indicator strategy:', {
+      strategyName: strategy.name,
+      indicators: strategy.indicators,
+      indicatorsType: typeof strategy.indicators,
+      isIndividual: this.isIndividualIndicatorStrategy(strategy)
+    });
+
     if (this.isIndividualIndicatorStrategy(strategy)) {
+      console.log('🎯 DEBUG: Using individual indicator strategy logic');
       recommendation = this.evaluateIndividualIndicatorStrategy(strategy, indicators, reasoning);
     }
     // Handle multi-indicator strategies
@@ -672,6 +680,15 @@ export class TradingService {
       case 'macd':
         return this.evaluateMACDStrategy(indicators.macd, buyConditions, sellConditions, reasoning);
 
+      case 'ema':
+        return this.evaluateEMAStrategy(indicators.ema, buyConditions, sellConditions, reasoning);
+
+      case 'three-tier-trend':
+        return this.evaluateThreeTierTrendStrategy(indicators, buyConditions, sellConditions, reasoning);
+
+      case 'donchian':
+        return this.evaluateDonchianBreakoutStrategy(indicators.donchian, buyConditions, sellConditions, reasoning);
+
       default:
         reasoning.push(`⚠️ Unknown individual indicator strategy: ${indicatorType}`);
         return 'HOLD';
@@ -679,29 +696,66 @@ export class TradingService {
   }
 
   /**
-   * Evaluate Bollinger Bands strategy
+   * Evaluate Bollinger Bands strategy based on Investopedia trading rules
    */
   private evaluateBollingerStrategy(bollingerData: any, buyConditions: any, sellConditions: any, reasoning: string[]): 'BUY' | 'SELL' | 'HOLD' | 'WATCH' {
-    if (!bollingerData) {
-      reasoning.push(`⚠️ Bollinger Bands data not available`);
+    console.log('🔍 DEBUG evaluateBollingerStrategy: bollingerData structure:', JSON.stringify(bollingerData, null, 2));
+
+    // Handle both backend API format (price) and historical format (currentPrice)
+    const currentPrice = bollingerData.price || bollingerData.currentPrice;
+
+    if (!bollingerData || !bollingerData.upper || !bollingerData.middle || !bollingerData.lower || !currentPrice) {
+      reasoning.push(`⚠️ Bollinger Bands data incomplete - missing: ${!bollingerData.upper ? 'upper ' : ''}${!bollingerData.middle ? 'middle ' : ''}${!bollingerData.lower ? 'lower ' : ''}${!currentPrice ? 'price' : ''}`);
       return 'HOLD';
     }
 
-    const signal = bollingerData.signal;
+    const { upper, middle, lower } = bollingerData;
 
-    // Check buy conditions
-    if (buyConditions.bollinger_signal === 'BUY' && signal === 'BUY') {
-      reasoning.push(`🟢 Bollinger Bands BUY signal - price near lower band`);
+    // Calculate band positions for better decision making
+    const upperDistance = (currentPrice - upper) / upper * 100;
+    const lowerDistance = (lower - currentPrice) / lower * 100;
+
+    // BUY SIGNALS (Oversold conditions per Investopedia)
+    // 1. Price touches or falls below lower band
+    if (currentPrice <= lower * 1.005) { // 0.5% tolerance for touching lower band
+      reasoning.push(`🟢 BUY: Price ${currentPrice.toFixed(2)} at/below lower band ${lower.toFixed(2)} - OVERSOLD condition`);
       return 'BUY';
     }
 
-    // Check sell conditions
-    if (sellConditions.bollinger_signal === 'SELL' && signal === 'SELL') {
-      reasoning.push(`🔴 Bollinger Bands SELL signal - price near upper band`);
+    // 2. Price bounces off lower band (within 2% of lower band and moving up)
+    if (currentPrice <= lower * 1.02 && currentPrice > lower) {
+      reasoning.push(`🟢 BUY: Price ${currentPrice.toFixed(2)} bouncing off lower band ${lower.toFixed(2)} - Mean reversion opportunity`);
+      return 'BUY';
+    }
+
+    // SELL SIGNALS (Overbought conditions per Investopedia)
+    // 1. Price touches or moves above upper band
+    if (currentPrice >= upper * 0.995) { // 0.5% tolerance for touching upper band
+      reasoning.push(`🔴 SELL: Price ${currentPrice.toFixed(2)} at/above upper band ${upper.toFixed(2)} - OVERBOUGHT condition`);
       return 'SELL';
     }
 
-    reasoning.push(`⚪ Bollinger Bands HOLD - signal: ${signal}`);
+    // 2. Price near upper band (within 2% and likely to reverse)
+    if (currentPrice >= upper * 0.98 && currentPrice < upper) {
+      reasoning.push(`🔴 SELL: Price ${currentPrice.toFixed(2)} near upper band ${upper.toFixed(2)} - Potential reversal`);
+      return 'SELL';
+    }
+
+    // WATCH signals for potential setups
+    // Price moving toward lower band (potential buy setup)
+    if (currentPrice <= lower * 1.05 && currentPrice > lower * 1.02) {
+      reasoning.push(`👀 WATCH: Price ${currentPrice.toFixed(2)} approaching lower band ${lower.toFixed(2)} - Monitor for buy opportunity`);
+      return 'WATCH';
+    }
+
+    // Price moving toward upper band (potential sell setup)
+    if (currentPrice >= upper * 0.95 && currentPrice < upper * 0.98) {
+      reasoning.push(`👀 WATCH: Price ${currentPrice.toFixed(2)} approaching upper band ${upper.toFixed(2)} - Monitor for sell opportunity`);
+      return 'WATCH';
+    }
+
+    // HOLD if price is within normal range (middle area of bands)
+    reasoning.push(`⚪ HOLD: Price ${currentPrice.toFixed(2)} in middle range [L:${lower.toFixed(2)} M:${middle.toFixed(2)} U:${upper.toFixed(2)}]`);
     return 'HOLD';
   }
 
@@ -795,6 +849,213 @@ export class TradingService {
 
     reasoning.push(`⚪ MACD HOLD - signal: ${signal}, crossover: ${crossover}`);
     return 'HOLD';
+  }
+
+  /**
+   * Evaluate EMA strategy based on 50-day EMA crossover and trend analysis
+   */
+  private evaluateEMAStrategy(emaData: any, buyConditions: any, sellConditions: any, reasoning: string[]): 'BUY' | 'SELL' | 'HOLD' | 'WATCH' {
+    if (!emaData) {
+      reasoning.push(`⚠️ EMA data not available`);
+      return 'HOLD';
+    }
+
+    // Handle both backend API format and historical format
+    const emaValue = emaData.value || emaData.ema || emaData.current;
+    const currentPrice = emaData.price || emaData.currentPrice;
+    const signal = emaData.signal;
+
+    if (!emaValue || !currentPrice) {
+      reasoning.push(`⚠️ EMA data incomplete - missing: ${!emaValue ? 'emaValue' : ''} ${!currentPrice ? 'currentPrice' : ''}`);
+      return 'HOLD';
+    }
+
+    // Investopedia 50-day EMA Strategy Rules:
+    // BUY: Price above EMA + bullish trend + strong signal
+    // SELL: Price below EMA + bearish trend + strong signal
+
+    const priceAboveEMA = currentPrice > emaValue;
+    const priceBelowEMA = currentPrice < emaValue;
+
+    // Check buy conditions based on Investopedia EMA crossover strategy
+    // BUY: Price above EMA (simple crossover strategy)
+    if (priceAboveEMA && signal === 'BUY') {
+      reasoning.push(`🟢 EMA BUY: Price $${currentPrice.toFixed(2)} above 50-day EMA $${emaValue.toFixed(2)} (crossover signal)`);
+      return 'BUY';
+    }
+
+    // Check sell conditions
+    // SELL: Price below EMA (simple crossover strategy)
+    if (priceBelowEMA && signal === 'SELL') {
+      reasoning.push(`🔴 EMA SELL: Price $${currentPrice.toFixed(2)} below 50-day EMA $${emaValue.toFixed(2)} (crossover signal)`);
+      return 'SELL';
+    }
+
+    // Hold conditions
+    if (priceAboveEMA) {
+      reasoning.push(`⚪ EMA HOLD: Price above EMA but no buy signal (signal: ${signal})`);
+    } else {
+      reasoning.push(`⚪ EMA HOLD: Price below EMA but no sell signal (signal: ${signal})`);
+    }
+
+    return 'HOLD';
+  }
+
+  /**
+   * Evaluate Donchian Channels Breakout Strategy (Turtle Trading System)
+   * Uses 20-day Donchian Channels for breakout signals
+   * Based on Richard Dennis Turtle Trading methodology
+   */
+  private evaluateDonchianBreakoutStrategy(donchianData: any, buyConditions: any, sellConditions: any, reasoning: string[]): 'BUY' | 'SELL' | 'HOLD' | 'WATCH' {
+    if (!donchianData) {
+      reasoning.push(`⚠️ Donchian Channels data not available`);
+      return 'HOLD';
+    }
+
+    // Handle both backend API format and historical format
+    const currentPrice = donchianData.price || donchianData.currentPrice || donchianData.current_price || 0;
+    const upperChannel = donchianData.upperChannel || donchianData.upper_channel || donchianData.upper || 0;
+    const lowerChannel = donchianData.lowerChannel || donchianData.lower_channel || donchianData.lower || 0;
+    const middleChannel = donchianData.middleChannel || donchianData.middle_channel || donchianData.middle || 0;
+    const position = donchianData.position || 'MIDDLE';
+    const signal = donchianData.signal || 'HOLD';
+
+    if (!currentPrice || !upperChannel || !lowerChannel) {
+      reasoning.push(`❌ Missing Donchian Channels data: price=${currentPrice}, upper=${upperChannel}, lower=${lowerChannel}`);
+      return 'HOLD';
+    }
+
+    reasoning.push(`📊 Donchian Analysis: Price=$${currentPrice.toFixed(2)}, Upper=$${upperChannel.toFixed(2)}, Lower=$${lowerChannel.toFixed(2)}, Middle=$${middleChannel.toFixed(2)}`);
+
+    // BREAKOUT BUY SIGNAL
+    if (position === 'UPPER_BREAKOUT' || (currentPrice >= upperChannel && signal === 'BUY')) {
+      reasoning.push(`🚀 DONCHIAN BUY: Price broke above upper channel ($${currentPrice.toFixed(2)} >= $${upperChannel.toFixed(2)}) - Classic breakout signal`);
+      return 'BUY';
+    }
+
+    // BREAKDOWN SELL SIGNAL
+    if (position === 'LOWER_BREAKOUT' || (currentPrice <= lowerChannel && signal === 'SELL')) {
+      reasoning.push(`📉 DONCHIAN SELL: Price broke below lower channel ($${currentPrice.toFixed(2)} <= $${lowerChannel.toFixed(2)}) - Classic breakdown signal`);
+      return 'SELL';
+    }
+
+    // BULLISH BIAS (Upper half of channel)
+    if (position === 'UPPER_HALF' || (currentPrice > middleChannel && currentPrice < upperChannel)) {
+      const distanceToBreakout = ((upperChannel - currentPrice) / currentPrice * 100);
+      reasoning.push(`📈 DONCHIAN WATCH: Price in upper half of channel, ${distanceToBreakout.toFixed(1)}% from breakout. Bullish bias but waiting for confirmation.`);
+      return 'WATCH';
+    }
+
+    // BEARISH BIAS (Lower half of channel)
+    if (position === 'LOWER_HALF' || (currentPrice < middleChannel && currentPrice > lowerChannel)) {
+      const distanceToBreakdown = ((currentPrice - lowerChannel) / currentPrice * 100);
+      reasoning.push(`📉 DONCHIAN WATCH: Price in lower half of channel, ${distanceToBreakdown.toFixed(1)}% from breakdown. Bearish bias but waiting for confirmation.`);
+      return 'WATCH';
+    }
+
+    // NEUTRAL (Near middle channel)
+    reasoning.push(`⚪ DONCHIAN HOLD: Price near middle channel ($${middleChannel.toFixed(2)}). Waiting for directional breakout.`);
+    return 'HOLD';
+  }
+
+  /**
+   * Evaluate Three-Tier Trend Trading Strategy (Pring-Inspired)
+   * Uses EMA (as proxy for SMA), MACD, and RSI for comprehensive trend analysis
+   * Adapted to work with available backend indicators
+   */
+  private evaluateThreeTierTrendStrategy(indicators: any, buyConditions: any, sellConditions: any, reasoning: string[]): 'BUY' | 'SELL' | 'HOLD' | 'WATCH' {
+    try {
+      // Extract available indicators (using EMA as proxy for SMA)
+      const emaData = indicators.ema; // Will use as primary trend indicator
+      const macdData = indicators.macd;
+      const rsiData = indicators.rsi;
+
+      if (!emaData || !macdData || !rsiData) {
+        reasoning.push('❌ Three-Tier strategy requires EMA, MACD, and RSI indicators');
+        return 'HOLD';
+      }
+
+      // Extract values from indicators
+      const currentPrice = emaData.price || emaData.currentPrice || 0;
+      const emaValue = emaData.value || emaData.ema || emaData.current || 0; // Primary trend (50-day EMA)
+      const macdValue = macdData.macd || macdData.value || 0;
+      const macdSignal = macdData.signal || macdData.signalLine || 0;
+      const macdHistogram = macdData.histogram || macdData.hist || (macdValue - macdSignal);
+      const rsiValue = rsiData.value || rsiData.rsi || rsiData.current || 0;
+
+      if (!currentPrice || !emaValue || rsiValue === 0) {
+        reasoning.push('❌ Missing required price, EMA, or RSI data for Three-Tier strategy');
+        return 'HOLD';
+      }
+
+      // Step 1: Primary Trend (EMA as trend filter)
+      const isPrimaryBullish = currentPrice > emaValue;
+      const isPrimaryBearish = currentPrice < emaValue;
+
+      // Step 2: Intermediate Trend (MACD confirmation)
+      const isIntermediateBullish = macdHistogram > 0 && macdValue > macdSignal;
+      const isIntermediateBearish = macdHistogram < 0 && macdValue < macdSignal;
+
+      // Step 3: Momentum (RSI for entry timing)
+      const isBullishRSI = rsiValue >= 40 && rsiValue <= 55; // RSI pullback zone for longs
+      const isBearishRSI = rsiValue >= 45 && rsiValue <= 60; // RSI bounce zone for shorts
+
+      // Step 4: Volume confirmation (simplified - use MACD histogram strength)
+      const hasVolumeConfirmation = Math.abs(macdHistogram) > 0.1; // MACD histogram shows momentum
+
+      reasoning.push(`📊 Three-Tier Analysis: Price=$${currentPrice.toFixed(2)}, EMA=$${emaValue.toFixed(2)}, RSI=${rsiValue.toFixed(1)}, MACD=${macdValue.toFixed(3)}, Hist=${macdHistogram.toFixed(3)}`);
+
+      // LONG ENTRY CONDITIONS
+      if (isPrimaryBullish && isIntermediateBullish && isBullishRSI && hasVolumeConfirmation) {
+        reasoning.push(`🟢 THREE-TIER BUY: All conditions met - Price above EMA (${currentPrice.toFixed(2)} > ${emaValue.toFixed(2)}), MACD bullish, RSI pullback (${rsiValue.toFixed(1)})`);
+        return 'BUY';
+      }
+
+      // SHORT ENTRY CONDITIONS
+      if (isPrimaryBearish && isIntermediateBearish && isBearishRSI && hasVolumeConfirmation) {
+        reasoning.push(`🔴 THREE-TIER SELL: All conditions met - Price below EMA (${currentPrice.toFixed(2)} < ${emaValue.toFixed(2)}), MACD bearish, RSI bounce (${rsiValue.toFixed(1)})`);
+        return 'SELL';
+      }
+
+      // EXIT CONDITIONS
+      // Momentum Exit: Extreme RSI levels
+      if (rsiValue > 75) {
+        reasoning.push(`🔴 THREE-TIER SELL: Momentum exit - RSI overbought (${rsiValue.toFixed(1)})`);
+        return 'SELL';
+      }
+
+      if (rsiValue < 25) {
+        reasoning.push(`🟢 THREE-TIER BUY: Momentum exit - RSI oversold (${rsiValue.toFixed(1)})`);
+        return 'BUY';
+      }
+
+      // Trend Exit: Price crosses back through EMA with MACD confirmation
+      if (isPrimaryBullish && !isIntermediateBullish) {
+        reasoning.push(`🔴 THREE-TIER SELL: Trend exit - MACD turned bearish in uptrend`);
+        return 'SELL';
+      }
+
+      if (isPrimaryBearish && !isIntermediateBearish) {
+        reasoning.push(`🟢 THREE-TIER BUY: Trend exit - MACD turned bullish in downtrend`);
+        return 'BUY';
+      }
+
+      // HOLD CONDITIONS
+      let holdReason = '⚪ THREE-TIER HOLD: ';
+      const conditions = [];
+
+      if (!isPrimaryBullish && !isPrimaryBearish) conditions.push('Price near EMA');
+      if (!isIntermediateBullish && !isIntermediateBearish) conditions.push('MACD neutral');
+      if (!isBullishRSI && !isBearishRSI) conditions.push(`RSI not in entry zone (${rsiValue.toFixed(1)})`);
+      if (!hasVolumeConfirmation) conditions.push('Weak momentum');
+
+      reasoning.push(holdReason + (conditions.length > 0 ? conditions.join(', ') : 'Waiting for alignment'));
+      return 'HOLD';
+
+    } catch (error) {
+      reasoning.push(`❌ Three-Tier Trend strategy error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return 'HOLD';
+    }
   }
 
   /**
@@ -900,6 +1161,9 @@ export class TradingService {
           case 'mfi':
             result.mfi = this.calculateMFI(priceData, 14);
             break;
+          case 'donchian':
+            result.donchian = this.calculateDonchianChannels(priceData, 20);
+            break;
           default:
             console.warn(`Historical calculation not implemented for ${indicator}`);
             result[indicator] = { signal: 'HOLD', value: 0 };
@@ -922,6 +1186,27 @@ export class TradingService {
     reasoning: string[];
   } {
     const reasoning: string[] = [];
+
+    // Check if this is an individual indicator strategy
+    console.log('🔍 DEBUG makeHistoricalTradingDecision: Checking individual indicator strategy:', {
+      strategyName: strategy.name,
+      indicators: strategy.indicators,
+      indicatorsType: typeof strategy.indicators,
+      isIndividual: this.isIndividualIndicatorStrategy(strategy)
+    });
+
+    if (this.isIndividualIndicatorStrategy(strategy)) {
+      console.log('🎯 DEBUG makeHistoricalTradingDecision: Using individual indicator strategy logic');
+      const recommendation = this.evaluateIndividualIndicatorStrategy(strategy, indicators, reasoning);
+      return {
+        recommendation,
+        confidence: 'MEDIUM', // Default confidence for individual strategies
+        reasoning
+      };
+    }
+
+    console.log('🔄 DEBUG makeHistoricalTradingDecision: Using multi-indicator strategy logic');
+
     let buySignals = 0;
     let sellSignals = 0;
 
@@ -1049,7 +1334,7 @@ export class TradingService {
     const trend = ema > previousEma ? 'BULLISH' : ema < previousEma ? 'BEARISH' : 'NEUTRAL';
     const signal = currentPrice > ema ? 'BUY' : currentPrice < ema ? 'SELL' : 'HOLD';
 
-    return { value: ema, trend, signal };
+    return { value: ema, trend, signal, price: currentPrice };
   }
 
   /**
@@ -1172,7 +1457,7 @@ export class TradingService {
     if (currentPrice <= lower) signal = 'BUY';
     else if (currentPrice >= upper) signal = 'SELL';
 
-    return { signal, upper, middle, lower };
+    return { signal, upper, middle, lower, price: currentPrice };
   }
 
   /**
@@ -1227,5 +1512,63 @@ export class TradingService {
     }
 
     return ema;
+  }
+
+  /**
+   * Calculate Donchian Channels (Turtle Trading System)
+   */
+  private calculateDonchianChannels(priceData: any[], period: number = 20): any {
+    if (priceData.length < period) {
+      return {
+        upper: 0,
+        lower: 0,
+        middle: 0,
+        current_price: 0,
+        position: 'MIDDLE',
+        signal: 'HOLD'
+      };
+    }
+
+    // Get the last 'period' days for calculation
+    const recentData = priceData.slice(-period);
+
+    // Calculate highest high and lowest low over the period
+    const highs = recentData.map(d => d.high);
+    const lows = recentData.map(d => d.low);
+
+    const upperChannel = Math.max(...highs);
+    const lowerChannel = Math.min(...lows);
+    const middleChannel = (upperChannel + lowerChannel) / 2;
+
+    // Current price is the most recent close
+    const currentPrice = priceData[priceData.length - 1].close;
+
+    // Determine position and signal
+    let position = 'MIDDLE';
+    let signal = 'HOLD';
+
+    if (currentPrice >= upperChannel) {
+      position = 'UPPER_BREAKOUT';
+      signal = 'BUY';
+    } else if (currentPrice <= lowerChannel) {
+      position = 'LOWER_BREAKOUT';
+      signal = 'SELL';
+    } else if (currentPrice > middleChannel) {
+      position = 'UPPER_HALF';
+      signal = 'BULLISH';
+    } else if (currentPrice < middleChannel) {
+      position = 'LOWER_HALF';
+      signal = 'BEARISH';
+    }
+
+    return {
+      upper: upperChannel,
+      lower: lowerChannel,
+      middle: middleChannel,
+      current_price: currentPrice,
+      position: position,
+      signal: signal,
+      period: period
+    };
   }
 }
